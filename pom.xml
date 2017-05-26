@@ -13,6 +13,7 @@
         <module>task</module>
         <module>web</module>
         <module>admin</module>
+        <module>crawlConfig</module>
     </modules>
 
     <parent>
