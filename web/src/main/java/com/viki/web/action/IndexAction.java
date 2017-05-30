@@ -15,17 +15,11 @@ import java.util.Map;
 @Controller
 public class IndexAction {
 
-//    @RequestMapping(value = "/test")
-//    public  ModelAndView hello(ModelMap modelMap) {
-//        ModelAndView mav = new ModelAndView("index");
-//        mav.addObject("name", "test");
-//        return mav;
-//    }
-
-    @RequestMapping("/test")
-    public String home() {
-        System.out.println("-=-----------");
-//        model.put("name", "HowToDoInJava Reader !!");
+    @RequestMapping(value = {"/","/index", "/index.html"})
+    public String index(ModelMap map) {
+        // 加入一个属性，用来在模板中读取
+        map.addAttribute("title", "Java自学网");
+        map.addAttribute("subjects", new String[]{"源码阅读","技能库", "在线工具", "登录 / 注册", "关于作者"});
         return "index";
     }
 }

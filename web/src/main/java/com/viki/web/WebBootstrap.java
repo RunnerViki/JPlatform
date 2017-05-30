@@ -12,9 +12,8 @@ import org.springframework.context.annotation.ComponentScan;
 /**
  * 主程序开始
  */
-@SpringBootApplication
+@SpringBootApplication(scanBasePackages = {"com.viki"})
 @EnableAutoConfiguration
-@ComponentScan(basePackages = {"com.viki"})
 public class WebBootstrap {
 
     public static void main(String[] args) {

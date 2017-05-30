@@ -1,0 +1,35 @@
+.post-nav{
+    color: #4b5257;
+    text-transform:none;
+    text-decoration:none;
+}
+.post-nav:hover {
+    text-decoration:none
+}
+
+.post-nav-bar{
+    float: right;
+}
+
+.btn-sm,
+.btn-xs {
+    padding: 5px 10px;
+    font-size: 12px;
+    line-height: 1.5;
+    border-radius: 3px;
+    margin-right: 20px;
+
+}
+
+.active {
+    color: #333;
+    background-color: #ebebeb;
+    border-color: #adadad;
+}
+
+
+.post-intro-header {
+    background-color: #777777;
+    background-attachment: scroll;
+@inlcude background-cover;
+    margin-bottom: 50px; }

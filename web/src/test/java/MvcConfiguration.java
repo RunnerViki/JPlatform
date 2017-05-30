@@ -14,17 +14,17 @@ import org.springframework.web.servlet.view.InternalResourceViewResolver;
 //@Configuration
 //@EnableWebMvc
 public class MvcConfiguration extends WebMvcConfigurerAdapter {
-    @Bean
+    /*@Bean
     public ViewResolver getViewResolver() {
         InternalResourceViewResolver resolver = new InternalResourceViewResolver();
         resolver.setPrefix("WEB-INF/templates/");
         resolver.setSuffix(".html");
         return resolver;
-    }
+    }*/
 
-    @Override
+    /*@Override
     public void configureDefaultServletHandling(
             DefaultServletHandlerConfigurer configurer) {
         configurer.enable();
-    }
+    }*/
 }
