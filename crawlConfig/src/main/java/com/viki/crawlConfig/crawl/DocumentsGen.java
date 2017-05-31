@@ -1,23 +1,23 @@
 package com.viki.crawlConfig.crawl;
 
-import java.io.IOException;
-import java.util.HashSet;
-
 import com.viki.crawlConfig.utils.ConnectionFactory;
 import org.jsoup.Connection;
-import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
+
+import java.io.IOException;
+import java.util.HashSet;
+import java.util.Set;
 
 
 public class DocumentsGen {
 	
-	private HashSet<String> targetUrls;
+	private Set<String> targetUrls;
 
 	private Connection conn = ConnectionFactory.getConnection().getValue();
 	
 	private Integer docCapacity = 50;
 	
-	public DocumentsGen(HashSet<String> targetUrls){
+	public DocumentsGen(Set<String> targetUrls){
 		this.targetUrls = targetUrls;
 	}
 	

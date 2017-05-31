@@ -1,8 +1,12 @@
 package com.viki.crawlConfig.crawl;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class WebConfigSnifferUtil {
 
-	
+	Logger logger = LoggerFactory.getLogger(WebConfigSnifferUtil.class);
+
 	public static String getHostByUrl(String url){
 		return WebConfigSnifferUtil.getHostByUrl(url,false);
 	}
@@ -19,17 +23,17 @@ public class WebConfigSnifferUtil {
 	}
 	
 	/**
-	 * ¼ÆËãÕýÔò±í´ïÊ½
+	 * ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê½
 	 * @param string
 	 * @return
 	 */
 	public static String getRegExpFromUrl(String sourceUrl){
 		String hostName = getHostByUrl(sourceUrl, true);
-		String appendix = sourceUrl.contains(".")?sourceUrl.substring(sourceUrl.lastIndexOf(".")+1):"";
-		sourceUrl = sourceUrl.replace(hostName, "").replace(appendix, "");
-		sourceUrl = sourceUrl.contains("?")?sourceUrl.substring(0,sourceUrl.indexOf("?")-1):sourceUrl;
+//		String appendix = sourceUrl.contains(".")?sourceUrl.substring(sourceUrl.lastIndexOf(".")+1):"";
+		sourceUrl = sourceUrl.replace(hostName, "");//.replace(appendix, "");
+		sourceUrl = sourceUrl.contains("?")?sourceUrl.substring(0,sourceUrl.indexOf("?")):sourceUrl;
 		sourceUrl = SimpleRegExpGen.genReg(sourceUrl);
-		return hostName+sourceUrl+ appendix;
+		return hostName+sourceUrl;
 	}
 	
 	
@@ -49,7 +53,7 @@ public class WebConfigSnifferUtil {
 		return true;
 	}
 	
-	public static void main(String[] args){
-		System.out.println(sourceLinksFilter("Video"));
-	}
+//	public static void main(String[] args){
+//		logger.info(sourceLinksFilter("Video"));
+//	}
 }

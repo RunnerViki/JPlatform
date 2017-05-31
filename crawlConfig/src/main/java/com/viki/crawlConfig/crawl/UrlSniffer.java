@@ -1,21 +1,29 @@
 package com.viki.crawlConfig.crawl;
 
-import java.io.IOException;
-import java.util.HashSet;
-import java.util.Set;
-
+import com.viki.crawlConfig.bean.Constants;
+import com.viki.crawlConfig.utils.ConcurrentEntry;
 import com.viki.crawlConfig.utils.ConnectionFactory;
+import org.apache.commons.lang3.StringUtils;
 import org.jsoup.Connection;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 
 /**
- * ���ٻ�ȡ��maxSize��url����
+ * ���ٻ�ȡ��maxSize��url����
  * @author vikiyang
  *
  */
 public class UrlSniffer {
+
+	Logger logger = LoggerFactory.getLogger(UrlSniffer.class);
 
 	private String entranceUrl;
 
@@ -36,7 +44,7 @@ public class UrlSniffer {
 	public static void main(String[] args){
 		UrlSniffer us = new UrlSniffer("http://kuaixun.stcn.com/2015/0408/12156763.shtml",200);
 		us.test();
-		//System.out.println(us.getHostByUrl(us.entranceUrl,true));
+		//logger.info(us.getHostByUrl(us.entranceUrl,true));
 	}
 	
 	private void test(){
@@ -47,19 +55,21 @@ public class UrlSniffer {
 		UrlSniffer us = new UrlSniffer("http://kuaixun.stcn.com/2015/0408/12156763.shtml",20);
 		/*for(String docUrl : us.getUrls()){
 			if(docUrl != null){
-				System.out.println(docUrl);
+				logger.info(docUrl);
 			}
 		}*/
 	}
 
 	public Set<String> getUrls() {
-		
+		String urlCrawled = "";
 		Set<String> docUrls = new HashSet<String>();
 		Elements eles;
 		docUrls.add(entranceUrl);
 		Set<String> loopedUrls;
 		Set<String> loopedUrlsTemp = new HashSet<String>();
 		int loopCount = 0;
+		ConcurrentHashMap<String,String> value;
+		ConcurrentEntry entry;
 		while(docUrls.size() < maxSize && loopCount++ < 20){
 			loopedUrls = new HashSet<String>(docUrls);
 			loopedUrls.removeAll(loopedUrlsTemp);
@@ -68,11 +78,55 @@ public class UrlSniffer {
 				if(url == null || url.isEmpty()){
 					continue;
 				}
-				//System.out.println(url);
 				try {
 					eles = conn.timeout(3000).url(url).get().select("a[href]");
 					for(Element ele : eles){
-						docUrls.add(normonizeUrl(ele.attr("href"),entranceUrl));
+						urlCrawled = normonizeUrl(ele.attr("href"),entranceUrl);
+						if(StringUtils.isBlank(urlCrawled)){
+							continue;
+						}
+						String regExpUrl = WebConfigSnifferUtil.getRegExpFromUrl(urlCrawled);
+						if(StringUtils.isBlank(regExpUrl)){
+							continue;
+						}
+						/*if (!WebConfigJobBalancer.allWebRegUrl.containsKey(regPattern)) {
+							value = new ConcurrentHashMap<>(50);
+							value.putIfAbsent(urlCrawled, null);
+							entry = new ConcurrentEntry(regPattern, value);
+							WebConfigJobBalancer.uncrawledUrlQueue.offer(entry);
+							logger.info("新加地址正则regExpUrl:"+regPattern);
+							WebConfigJobBalancer.allWebRegUrl.put(regPattern, new WeakReference<ConcurrentEntry>(entry));
+						}else if(WebConfigJobBalancer.allWebRegUrl.get(regPattern) != null){
+							value = WebConfigJobBalancer.allWebRegUrl.get(regPattern).get().getValue();
+							value.putIfAbsent(urlCrawled, null);
+							logger.info("向jobqueue中已有entry("+regPattern+")添加新地址:"+urlCrawled);
+						}*/
+
+
+						if (!WebConfigJobBalancer.allWebRegUrl.containsKey(regExpUrl)) {
+							value = new ConcurrentHashMap<>(Constants.CRAWLED_GROUP_SIZE + 5);
+							value.putIfAbsent(urlCrawled, "false");
+							entry = new ConcurrentEntry(regExpUrl, value);
+							logger.info("新加地址正则regExpUrl:"+regExpUrl);
+							WebConfigJobBalancer.allWebRegUrl.put(regExpUrl, entry);
+						}else if((entry = WebConfigJobBalancer.allWebRegUrl.get(regExpUrl)) != null  && !entry.getIsUsed() && (value = entry.getValue()) != null && !value.containsKey(urlCrawled)){
+							value.putIfAbsent(urlCrawled, "false");
+							logger.info("向jobqueue中已有entry("+regExpUrl+")添加新地址:"+urlCrawled);
+							if(value.size() >= Constants.CRAWLED_GROUP_SIZE && value.size() <= Constants.CRAWLED_GROUP_SIZE + 2 && !WebConfigJobBalancer.uncrawledUrlQueue.contains(entry)){
+								WebConfigJobBalancer.uncrawledUrlQueue.offer(entry);
+							}
+						}
+
+						/*docUrls.add(urlCrawled);
+						if(!WebConfigJobBalancer.allWebUrl.containsKey(urlCrawled)){
+							WebConfigJobBalancer.allWebUrl.put(urlCrawled,"");
+
+							if (!WebConfigJobBalancer.allWebRegUrl.containsKey(regPattern)) {
+								logger.info("新加地址正则regExpUrl:"+regPattern);
+								WebConfigJobBalancer.allWebRegUrl.putIfAbsent(regPattern,"");
+								WebConfigJobBalancer.uncrawledUrlQueue.offer(urlCrawled);
+							}
+						}*/
 					}
 				} catch (IOException e) {
 					try {
@@ -84,37 +138,6 @@ public class UrlSniffer {
 			}
 		}
 		docUrls.remove(null);
-		
-		/*try {
-			Document doc = conn.timeout(3000).url(entranceUrl).get();
-			
-			Elements eles = doc.select("a[href]");
-			loopedUrls = new HashSet<String>(docUrls);
-			Iterator<String> urlIter = loopedUrls.iterator();
-			while(docUrls.size() < maxSize){
-				String url ="";
-				if(urlIter.hasNext()){
-					url = urlIter.next();
-					if(url == null || url.isEmpty()){
-						continue;
-					}
-				}else{
-					loopedUrlsTemp = new HashSet<String>(loopedUrls);
-					loopedUrls = new HashSet<String>(docUrls);
-					loopedUrls.removeAll(loopedUrlsTemp);
-				}
-				if(url == null || url.isEmpty()){
-					continue;
-				}
-				System.out.println(url);
-				eles = conn.timeout(3000).url(url).get().select("a[href]");
-				for(Element ele : eles){
-					docUrls.add(normonizeUrl(ele.attr("href"),entranceUrl));
-				}
-			}
-		} catch (IOException e) {
-			e.printStackTrace();
-		}*/
 		return docUrls;
 	}
 	
@@ -122,9 +145,9 @@ public class UrlSniffer {
 		if(url==null || url.length() == 0){
 			return null;
 		}
-		if(!url.contains(WebConfigSnifferUtil.getHostByUrl(sourceUrl))){
-			return null;
-		}
+//		if(!url.contains(WebConfigSnifferUtil.getHostByUrl(sourceUrl))){
+//			return null;
+//		}
 		if(url.startsWith("javascript")){
 			return null;
 		}

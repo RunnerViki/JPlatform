@@ -9,19 +9,19 @@ import java.util.Map.Entry;
 public class ErrorNote {
 
 	private Entry<String, HashSet<String>> entry;
-	
+
 	private String entraceUrl;
-	
+
 	private String note;
-	
+
 	public ErrorNote(Entry<String, HashSet<String>> entry,String entrance_Url,String note){
 		this.entry = entry;
 		this.entraceUrl = entrance_Url;
 		this.note = note;
 	}
-	
+
 	public void write(){
-		File f = new File("G://¸öÈËÏîÄ¿//PostNewNoter//"+this.entraceUrl.replace(".", "").replace("/", "").replace("\\", "").replace(":", "").replace("{", "").replace("}", "")+".txt");
+		File f = new File("E://personalProject//PostNewNoter//"+this.entraceUrl.replace(".", "").replace("/", "").replace("\\", "").replace(":", "").replace("{", "").replace("}", "")+".txt");
 		try {
 			if(!f.getParentFile().exists()){
 				f.getParentFile().mkdirs();
@@ -30,7 +30,7 @@ public class ErrorNote {
 		} catch (IOException e1) {
 			e1.printStackTrace();
 		}
-		System.err.println("´´½¨ÐÂÎÄµµ"+this.entraceUrl);
+		System.err.println("åˆ›å»ºæ–°æ–‡æ¡£"+this.entraceUrl);
 		try {
 			FileWriter fileWriter = new FileWriter(f);
 			fileWriter.write("Note:"+note);

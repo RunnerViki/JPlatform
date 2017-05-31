@@ -1,8 +1,8 @@
 package com.viki.crawlConfig.bean;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
-import org.springframework.context.support.ClassPathXmlApplicationContext;
 
 import java.util.Date;
 import java.util.concurrent.ExecutorService;
@@ -12,21 +12,21 @@ import java.util.concurrent.TimeUnit;
 
 
 public class Constants {
-	
+
 	public static ApplicationContext ctx;
-	
+
 	private ApplicationContext ctx2;
-	
-	//ÒÑ¾­ÅÀÈ¡µ½µÄ£¬µ«Ã»ÓĞ»ñÈ¡µ½ÄÚÈİµÄµØÖ·
+
+	//å·²ç»çˆ¬å–åˆ°çš„ï¼Œä½†æ²¡æœ‰è·å–åˆ°å†…å®¹çš„åœ°å€
 	public static final Integer SAVED_URL_NOT_SCRAWL = 0;
 
-	//ÒÑ¾­ÅÀÈ¡µ½µÄ£¬ÇÒÒÑ¾­»ñÈ¡µ½ÄÚÈİµÄµØÖ·
+	//å·²ç»çˆ¬å–åˆ°çš„ï¼Œä¸”å·²ç»è·å–åˆ°å†…å®¹çš„åœ°å€
 	public static final Integer SAVED_URL_SCRAWLED = 1;
 
-	//¿ÉÓÃµÄÍøÕ¾ÅäÖÃ
+	//å¯ç”¨çš„ç½‘ç«™é…ç½®
 	public static final Integer WEB_CONFIG_VALID = 0;
 
-	//²»¿ÉÓÃµÄÍøÕ¾ÅäÖÃ
+	//ä¸å¯ç”¨çš„ç½‘ç«™é…ç½®
 	public static final Integer WEB_CONFIG_INVALID = 1;
 
 	public static final Integer GET_CONTENT_SUC = 1;
@@ -41,9 +41,11 @@ public class Constants {
 
 	public static final String CONN_NAME = "CONN";
 
-	public static final Logger logger = Logger.getRootLogger();
+	public static final Logger logger = LoggerFactory.getLogger(Constants.class);
 
 //	public static GlobleConfig globleConfig;
+
+	public static final int CRAWLED_GROUP_SIZE = 50;
 
 
 	/*static{ TODO
@@ -51,22 +53,20 @@ public class Constants {
 		"file:G:\\Workspace\\BigRazor\\WebRoot\\WEB-INF\\applicationContext.xml"};
 		ctx = new ClassPathXmlApplicationContext(paths);
 		globleConfig = GlobleConfig.getInstance();
-		System.out.println("fff");
+		logger.info("fff");
 	}*/
 
-	public static ExecutorService executorService = new ThreadPoolExecutor(15, 15, 60L, TimeUnit.MILLISECONDS,new LinkedBlockingQueue<Runnable>());
+	public static ExecutorService executorService = new ThreadPoolExecutor(10, 10, 60L, TimeUnit.MILLISECONDS,new LinkedBlockingQueue<Runnable>());
 
-	public static ExecutorService executorServiceMotion = new ThreadPoolExecutor(10, 15, 60L, TimeUnit.MILLISECONDS,new LinkedBlockingQueue<Runnable>());
-
-	//Êı¾İ¿âÖĞ´æ´¢µÄÅäÖÃĞÅÏ¢
-    //public static HashMap<String,String> configItems = SystemInit.getInstance().getSystemConfigItems();
+	//æ•°æ®åº“ä¸­å­˜å‚¨çš„é…ç½®ä¿¡æ¯
+	//public static HashMap<String,String> configItems = SystemInit.getInstance().getSystemConfigItems();
     
 	/*public static void setConfigItems(HashMap<String, String> xx) {
 		configItems = xx;
 	}*/
-	
+
 	public Date lastScrawlTime = new Date();
-	
+
 	public Date getLastScrawlTime() {
 		return lastScrawlTime;
 	}
@@ -76,7 +76,7 @@ public class Constants {
 	}
 
 	private static  Constants constants;
-	
+
 	private Constants(){
 	}
 	

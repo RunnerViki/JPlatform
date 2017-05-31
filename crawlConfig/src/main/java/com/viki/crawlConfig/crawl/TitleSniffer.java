@@ -1,77 +1,101 @@
 package com.viki.crawlConfig.crawl;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.regex.Pattern;
-
+import com.viki.crawlConfig.bean.Constants;
 import com.viki.crawlConfig.utils.MapUtil;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.regex.Pattern;
 
 
 
 public class TitleSniffer {
 
 	private Set<Document> docs;
-	
-	private HashMap<String,Integer> titleXpath =  new HashMap<String,Integer>();
-	
+
+	private ConcurrentHashMap<String,Integer> titleXpath =  new ConcurrentHashMap<String,Integer>();
+
+	static  Logger logger = LoggerFactory.getLogger(TitleSniffer.class);
+
+
 	public TitleSniffer(Set<Document> docs){
 		this.docs = docs;
 	}
-	
+
 	public String extractTitleXPath(){
-		String title = "";
-		String webpageTitle;
-		for(Document doc : docs){
-			cssSelectorDegree = 0.00;
-			cssSelectorTemp = "";
-			webpageTitle = doc.title() == null ? "": doc.title();
-			webpageTitle = webpageTitle.replaceAll("\\s+", "").replaceAll("\\_|\\-|\\\r", "");
-			title = extractTitleXpathByTag(doc,webpageTitle);
-			if(title == null){
-				erxtractTitleXpathBySimiliarDegree(doc.select("body").first(),webpageTitle);
-				title = cssSelectorTemp;
-			}
-			if(!titleXpath.containsKey(title)){
-				titleXpath.put(title, 1);
-			}else{
-				titleXpath.put(title, titleXpath.get(title)+1);
+		List<Future> futureList = new ArrayList<>();
+		for(final Document doc : docs){
+			Runnable runnable = new Runnable() {
+				@Override
+				public void run() {
+					String cssSelectorTemp = "";
+					cssSelectorTemp = "";
+					Double cssSelectorDegree = 0.0D;
+					String title = "";
+					String webpageTitle;
+					webpageTitle = doc.title() == null ? "": doc.title();
+					webpageTitle = webpageTitle.replaceAll("\\s+", "").replaceAll("\\_|\\-|\\\r", "");
+					title = extractTitleXpathByTag(doc,webpageTitle);
+					if(title == null){
+						erxtractTitleXpathBySimiliarDegree(doc.select("body").first(),webpageTitle, cssSelectorTemp, cssSelectorDegree);
+						title = cssSelectorTemp;
+					}
+					if(!titleXpath.containsKey(title)){
+						titleXpath.put(title, 1);
+					}else{
+						titleXpath.put(title, titleXpath.get(title)+1);
+					}
+				}
+			};
+			futureList.add(Constants.executorService.submit(runnable));
+		}
+		for(Future future : futureList){
+			try {
+				future.get();
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			} catch (ExecutionException e) {
+				e.printStackTrace();
 			}
 		}
 		if(titleXpath.size() == 0){
-			return null;
+			return "";
 		}
-		titleXpath.remove(null);
 		if(titleXpath.size() == 0){
-			return null;
+			return "";
 		}
-		return MapUtil.sortMapByValue(titleXpath).entrySet().iterator().next().getKey();
+		return titleXpath.size() > 0 ? MapUtil.sortMapByValue(titleXpath).entrySet().iterator().next().getKey() : "";
 	}
-	
+
 	public static void main(String[] args) throws IOException{
 		Set<Document> docs = new HashSet<Document>();
 		Document doc = Jsoup.connect("http://www.leiphone.com/news/201504/mdlLDik9GNCaRyb8.html").get();
 		docs.add(doc);
 		TitleSniffer ts = new TitleSniffer(docs);
-		System.out.println(ts.extractTitleXPath());
-		System.out.println(doc.select(ts.extractTitleXPath()).text());
-		
+		logger.info(ts.extractTitleXPath());
+		logger.info(doc.select(ts.extractTitleXPath()).text());
+		System.out.println("-------");
 	}
-	
-	private String cssSelectorTemp = "";
-	private Double cssSelectorDegree = 0.00;
-	private void erxtractTitleXpathBySimiliarDegree(Element ele, String webPageTitle){
-		double degree = getSimliarDegree(ele.text(),webPageTitle);
+
+
+	private void erxtractTitleXpathBySimiliarDegree(Element ele, String webPageTitle, String cssSelectorTemp, Double cssSelectorDegree){
+		Double degree = getSimliarDegree(ele.text(),webPageTitle);
 		if(degree >= cssSelectorDegree){
 			try{
-			cssSelectorTemp = ele.cssSelector();
-			cssSelectorDegree = degree;
+				cssSelectorTemp = ele.cssSelector();
+				cssSelectorDegree = degree;
 			}catch(Exception e){
 			}
 		}
@@ -79,22 +103,22 @@ public class TitleSniffer {
 			if(e.text().isEmpty()){
 				continue;
 			}
-			erxtractTitleXpathBySimiliarDegree(e,webPageTitle);
+			erxtractTitleXpathBySimiliarDegree(e,webPageTitle, cssSelectorTemp, cssSelectorDegree);
 		}
 	}
-	
+
 	private String extractTitleXpathByTag(Element doc, String webPageTitle){
 		Elements eles;
-		
-		//ÏÈÅĞ¶ÏÊÇ·ñÓĞh1-h6ÏµÁĞ±êÇ©
+
+		//å…ˆåˆ¤æ–­æ˜¯å¦æœ‰h1-h6ç³»åˆ—æ ‡ç­¾
 		for(String t : new String[]{"h1","h2","h3","h4","h5","h6"}){
 			eles = doc.select(t);
 			for(Element el : eles){
 
-				//Èç¹ûÔªËØÃ»ÓĞÄÚÈİ£¬ÔòÖ±½Ó´¦ÀíÏÂÒ»¸öÔªËØ
+				//å¦‚æœå…ƒç´ æ²¡æœ‰å†…å®¹ï¼Œåˆ™ç›´æ¥å¤„ç†ä¸‹ä¸€ä¸ªå…ƒç´ 
 				if(el.text() != null && el.text().trim().length() > 0){
 
-					//Èç¹û¸ÃÔªËØÄÚÈİÓëÍøÒ³±êÌâ²»´æÔÚµ¥Ïò°üÈİ£¬ÔòÅÅ³ı
+					//å¦‚æœè¯¥å…ƒç´ å†…å®¹ä¸ç½‘é¡µæ ‡é¢˜ä¸å­˜åœ¨å•å‘åŒ…å®¹ï¼Œåˆ™æ’é™¤
 					if(!el.text().replaceAll("\\s+", "").replaceAll("\\_|\\-|\\\r", "").contains(webPageTitle) &&
 							!webPageTitle.contains(el.text().replaceAll("\\s+", "").replaceAll("\\_|\\-|\\\r", ""))){
 						continue;
@@ -109,7 +133,7 @@ public class TitleSniffer {
 		}
 		return null;
 	}
-	
+
 	private Double getSimliarDegree(String sourceA,String sourceB){
 		String sa = new String(sourceA);
 		String sb = new String(sourceB);
@@ -129,15 +153,15 @@ public class TitleSniffer {
 			}
 		}
 		return new Double(duplicatedCharCount*2) / (sa.length() + sb.length());
-		
+
 		//return new Double(2*(sourceA.length() + sourceB.length() - setC.size() - (sourceA.length() - setA.size()) - (sourceB.length() - setB.size()))) / (sourceA.length() + sourceB.length());
 	}
-	
-	
+
+
 	private static String enshortCssSelector(Document dodd){
 		return null;
 	}
-	
+
 	@SuppressWarnings("unused")
 	private String normonizeUrl(String targetUrl,String sourceUrl){
 		if(targetUrl==null || targetUrl.length() == 0){

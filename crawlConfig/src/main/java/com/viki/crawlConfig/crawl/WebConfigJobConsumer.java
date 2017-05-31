@@ -1,142 +1,128 @@
 package com.viki.crawlConfig.crawl;
 
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Set;
-import java.util.Map.Entry;
-import java.util.concurrent.ArrayBlockingQueue;
-
+import com.alibaba.fastjson.JSONObject;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.viki.crawlConfig.bean.Constants;
 import com.viki.crawlConfig.bean.WebsiteConfig;
 import com.viki.crawlConfig.mapper.WebsiteConfigMapper;
+import com.viki.crawlConfig.utils.ConcurrentEntry;
+import org.apache.commons.lang3.StringUtils;
 import org.jsoup.nodes.Document;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.support.ClassPathXmlApplicationContext;
+
+import java.util.Arrays;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.TimeUnit;
 
 
 public class WebConfigJobConsumer implements Runnable {
 
-	private String entranceUrl;
-	
-	private ArrayBlockingQueue<String> webconfigJobQueue;
+	private ConcurrentEntry entranceEntry;
 
-	public WebConfigJobConsumer(ArrayBlockingQueue<String> webconfigJobQueue) {
+	Logger logger = LoggerFactory.getLogger(WebConfigJobConsumer.class);
+	
+	private ArrayBlockingQueue<ConcurrentEntry> webconfigJobQueue;
+
+	public WebConfigJobConsumer(ArrayBlockingQueue<ConcurrentEntry> webconfigJobQueue) {
 			this.webconfigJobQueue = webconfigJobQueue;
 	}
+
+	@Autowired
+	WebsiteConfigMapper websiteConfigMapper;
+
+	public WebConfigJobConsumer(WebsiteConfigMapper websiteConfigMapper) {
+		this.webconfigJobQueue = WebConfigJobBalancer.uncrawledUrlQueue;
+		this.websiteConfigMapper = websiteConfigMapper;
+	}
 	
-	public WebConfigJobConsumer(String entranceUrl){
-		this.entranceUrl = entranceUrl;
+	public WebConfigJobConsumer(ConcurrentEntry entranceEntry){
+		this.entranceEntry = entranceEntry;
 	}
 
 	@Override
 	public void run() {
+		Thread.currentThread().setName("WebConfigJobConsumer");
 		boolean  isContinue = true;
 		while(isContinue){
 			try {
-				this.entranceUrl = webconfigJobQueue.take();
-				if(!WebConfigSnifferUtil.sourceLinksFilter(entranceUrl)){
-					System.out.println(entranceUrl);
+				this.entranceEntry = webconfigJobQueue.poll(3, TimeUnit.SECONDS);
+				if(entranceEntry == null){
+					TimeUnit.SECONDS.sleep(5);
+					continue;
+				}
+				if(entranceEntry.getValue().size() < Constants.CRAWLED_GROUP_SIZE){
+					webconfigJobQueue.offer(entranceEntry);
+					for(Entry<String,String> entry : entranceEntry.getValue().entrySet()){
+						if("false".equals(entry.getValue())){
+							UrlSniffer urlSniffer = new UrlSniffer(entry.getKey());
+							urlSniffer.getUrls();
+							entry.setValue("true");
+						}
+					}
 					continue;
 				}
 				WebsiteConfig websiteConfig = new WebsiteConfig();
-				UrlSniffer urlSniffer = new UrlSniffer(entranceUrl);
-				UrlGroupSpliter urlGroupSpliter = new UrlGroupSpliter(urlSniffer.getUrls());
-				Iterator<Entry<String, HashSet<String>>> entrys = urlGroupSpliter.seperateAndGetFirst();
-				Entry<String, HashSet<String>> entry;
-				System.out.println(entrys.hasNext());
-				int count = 0;
-				while((entry = entrys.next())!=null  && count++ < 4){
-					/*if(!entry.getKey().replaceAll("\\s+", "").contains(WebConfigSnifferUtil.getRegExpFromUrl(entranceUrl))){
-						continue;
-					}*/
-					System.out.println(entry.getKey() + "\t---------------\t"+WebConfigSnifferUtil.getRegExpFromUrl(entranceUrl));
-					/*if(WebConfigJobBalancer.allWebRegUrl.contains(entry.getKey())){
-						System.out.println(entry.getKey());
-						continue;
-					}*/
-					websiteConfig.setUrlPattern(entry.getKey());
-					System.out.println("1111111111");
-					
-					
-					DocumentsGen documentsGen = new DocumentsGen(entry.getValue());
-					Set<Document> documents = documentsGen.gen();
-					System.out.println("22222222222");
-					TitleSniffer titleSniffer = new TitleSniffer(documents);
-					String titleXpath = titleSniffer.extractTitleXPath();
-					System.out.println("titleXpath------------"+titleXpath);
-					websiteConfig.setTitleXpath(titleXpath);
-					if(titleXpath==null || titleXpath.length() ==0){
-						new ErrorNote(entry,entry.getKey(),"titleXpathÎª¿Õ£¬´«ÈëµØÖ·Îª"+entranceUrl).write();
-						continue;
-					}
+				Set<String> subset = ImmutableSet.copyOf(Iterables.limit(entranceEntry.getValue().keySet(), Constants.CRAWLED_GROUP_SIZE));
+				DocumentsGen documentsGen = new DocumentsGen(subset);
+				Set<Document> documents = documentsGen.gen();
 
-					ContentSniffer contentSniffer = new ContentSniffer(documents);
-					String contentXpath = contentSniffer.extractContentXpath();
-					System.out.println("contentXpath---------------------"+contentXpath);
-					websiteConfig.setContentXpath(contentXpath);
-					if(contentXpath==null ||contentXpath.length() == 0){
-						new ErrorNote(entry,entry.getKey(),"contentXpathÎª¿Õ£¬´«ÈëµØÖ·Îª"+entranceUrl).write();
-						continue;
-					}
+				TitleSniffer titleSniffer = new TitleSniffer(documents);
+				String titleXpath = titleSniffer.extractTitleXPath();
+				websiteConfig.setTitleXpath(titleXpath);
 
+				ContentSniffer contentSniffer = new ContentSniffer(documents);
+				String contentXpath = contentSniffer.extractContentXpath();
+				websiteConfig.setContentXpath(contentXpath);
 
+				if(StringUtils.isNotBlank(titleXpath) && StringUtils.isNotBlank(contentXpath)){
 					PostdateSniffer postdateSniffer = new PostdateSniffer(documents, titleXpath, contentXpath);
-
 					String postdateXpath = postdateSniffer.extractPostDate();
-					System.out.println("postdateXpath------------------------"+postdateXpath);
-
-					if(postdateXpath == null || postdateXpath.length() == 0 ){
-						postdateXpath = postdateSniffer.extractPostDate();
-						new ErrorNote(entry,entry.getKey(),"postdateXpathÎª¿Õ£¬´«ÈëµØÖ·Îª"+entranceUrl).write();
-						continue;
-					}
 					websiteConfig.setPostdateXpath(postdateXpath);
 					websiteConfig.setPostdateFormat(postdateSniffer.getPostdateFormat());
-					System.out.println("PostdateFormat--------------------"+postdateSniffer.getPostdateFormat());
-					if(postdateSniffer.getPostdateFormat() == null || postdateSniffer.getPostdateFormat().length() == 0 ){
-						new ErrorNote(entry,entry.getKey(),"postdateSniffer.getPostdateFormatÎª¿Õ£¬´«ÈëµØÖ·Îª"+entranceUrl).write();
-						continue;
-					}
-
-					websiteConfig.setEntranceUrl(WebConfigSnifferUtil.getHostByUrl(entranceUrl,true));
-					websiteConfig.setDomain(WebConfigSnifferUtil.getHostByUrl(entranceUrl));
-					websiteConfig.setEncoding(documents.iterator().next().outputSettings().charset().name());
-					websiteConfig.setWebName("");
-					websiteConfig.setGroupName("");
-					websiteConfig.setCrawling_interval(3000);
-					websiteConfig.setStopSeconds(600);
-					websiteConfig.setUrlSourceNorm("");
-					websiteConfig.setUrlREPOrigin("");
-					websiteConfig.setUrlREPReplacement("");
-					websiteConfig.setUrlPrefix("");
-					websiteConfig.setStatus(0);
-
-					 String[] paths = new String[] {"file:G:\\Workspace\\BigRazor\\WebRoot\\WEB-INF\\applicationContext-mybatis.xml",
-						"file:G:\\Workspace\\BigRazor\\WebRoot\\WEB-INF\\applicationContext.xml"};
-					 ApplicationContext ctx = new ClassPathXmlApplicationContext(paths);
-					 Constants.ctx = ctx;
-					 try {
-						websiteConfigMapper.insert(websiteConfig);
-						System.out.println("²åÈëÒ»¸öÅÀÈ¡ÅäÖÃµ½Êý¾Ý¿â");
-					} catch (Exception e) {
-						e.printStackTrace();
-					}
 				}
-				
+				websiteConfig.setUrlPattern(entranceEntry.getKey());
+				String entranceUrl = entranceEntry.getValue().keySet().iterator().next();
+				websiteConfig.setEntranceUrl(WebConfigSnifferUtil.getHostByUrl(entranceUrl,true));
+				websiteConfig.setDomain(WebConfigSnifferUtil.getHostByUrl(entranceUrl));
+				websiteConfig.setEncoding(documents.iterator().next().outputSettings().charset().name());
+				websiteConfig.setWebName("");
+				websiteConfig.setGroupName("");
+				websiteConfig.setCrawling_interval(3000);
+				websiteConfig.setStopSeconds(600);
+				websiteConfig.setUrlSourceNorm("");
+				websiteConfig.setUrlREPOrigin("");
+				websiteConfig.setUrlREPReplacement("");
+				websiteConfig.setUrlPrefix("");
+				websiteConfig.setStatus(0);
+				websiteConfig.setSampleUrl(Arrays.toString(subset.toArray(new String[entranceEntry.getValue().values().size()])));
+				try {
+					websiteConfigMapper.insert(websiteConfig);
+					entranceEntry.setIsUsed(true);
+					entranceEntry.setValue(null);
+				} catch (Exception e) {
+					e.printStackTrace();
+					logger.error("Consumerå‡ºé”™äº† entry.getKey():" + entranceEntry.getKey() +"\t\tentranceUrl:"+entranceUrl + "\t"+JSONObject.toJSONString(websiteConfig) + e.getMessage() + JSONObject.toJSONString(e.getStackTrace()));
+				}
 			} catch (Exception e1) {
+				e1.printStackTrace();
+				logger.error("Consumerå‡ºé”™äº†:"+e1.getMessage()+ JSONObject.toJSONString(e1.getStackTrace()));
 				try {
 					Thread.currentThread().sleep(1000);
 				} catch (InterruptedException e) {
 					e.printStackTrace();
 				}
 				continue;
+
 			}
 		}
-		//this.run();
+		logger.info("Consumer è·‘å®Œ?");
 	}
 
-	@Autowired
-	WebsiteConfigMapper websiteConfigMapper;
+
 
 }

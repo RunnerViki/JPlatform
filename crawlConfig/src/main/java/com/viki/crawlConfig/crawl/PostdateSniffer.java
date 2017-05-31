@@ -1,22 +1,23 @@
 package com.viki.crawlConfig.crawl;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
-import java.util.Map.Entry;
-import java.util.regex.Pattern;
-
+import com.viki.crawlConfig.bean.Constants;
 import com.viki.crawlConfig.utils.MapUtil;
 import com.viki.crawlConfig.utils.StringUtil;
+import org.apache.commons.lang3.StringUtils;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.util.*;
+import java.util.Map.Entry;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.regex.Pattern;
 
 
 /**
@@ -24,16 +25,16 @@ import org.jsoup.select.Elements;
  *
  */
 public class PostdateSniffer {
-	
+
 	private String contentXpath;
-	
+
 	private String titleXpath;
-	
+
 	private HashMap<String,Integer> postdateXpathSet =  new HashMap<String,Integer>();
-	
-	private HashMap<String,ArrayList<String>> postdateRegSet = new HashMap<String,ArrayList<String>>();
-	
-	private String dataFormatSplitReplacement = "Äê|ÔÂ|ÈÕ|Ê±|·Ö|Ãë|\\p{Punct}|\\s+|\\p{Zs}| ";
+
+	private ConcurrentHashMap<String,ArrayList<String>> postdateRegSet = new ConcurrentHashMap<String,ArrayList<String>>();
+
+	private String dataFormatSplitReplacement = "å¹´|æœˆ|æ—¥|æ—¶|åˆ†|ç§’|\\p{Punct}|\\s+|\\p{Zs}| ";
 
 	private String postdateFormat = "";
 
@@ -45,6 +46,8 @@ public class PostdateSniffer {
 
 	private String postdateRegExp;
 
+	Logger logger = LoggerFactory.getLogger(PostdateSniffer.class);
+
 	public PostdateSniffer(Set<Document> docs,String titleXpath,String contentXpath){
 		this.docs = new ArrayList<Document>(docs);
 		this.titleXpath = titleXpath;
@@ -52,23 +55,21 @@ public class PostdateSniffer {
 	}
 
 	/**
-	 * ´ÓdocsÖĞ»ñÈ¡·¢±íÈÕÆÚµØÖ·ºÍ·¢±íÈÕÆÚÑ¡ÔñÆ÷
+	 * ä»docsä¸­è·å–å‘è¡¨æ—¥æœŸåœ°å€å’Œå‘è¡¨æ—¥æœŸé€‰æ‹©å™¨
 	 * @return
 	 */
 	public String extractPostDate(){
 		postdateFormat = extractPostDateFormat();
 		if(postdateFormat == null){
-			// TODO Èç¹ûÃ»ÓĞÄÃµ½CSSÊ±£¬ĞèÒªÔÙÄÃÒ»´Î
+			// TODO å¦‚æœæ²¡æœ‰æ‹¿åˆ°CSSæ—¶ï¼Œéœ€è¦å†æ‹¿ä¸€æ¬¡
 		}
-		//cssSelector = extractPostDateXpath();
-		System.out.println(cssSelector);
-		return cssSelector;
+		return cssSelector == null ? "" : cssSelector;
 	}
 
 
 	boolean gotTarget = false;
 	/**
-	 * 1¡¢µÃµ½Ò³ÃæËùÔÚÔªËØ·¢±íÊ±¼äµÄ×Ö·û´®¸ñÊ½
+	 * 1ã€å¾—åˆ°é¡µé¢æ‰€åœ¨å…ƒç´ å‘è¡¨æ—¶é—´çš„å­—ç¬¦ä¸²æ ¼å¼
 	 * @return
 	 */
 	private String extractPostDateFormat(){
@@ -85,8 +86,8 @@ public class PostdateSniffer {
 			if(dateFormat.isEmpty()){
 				continue;
 			}
-			if(dateFormat.equals("yyyyÄêMMÔÂddÈÕ")){
-				System.out.println("fffff");
+			if(dateFormat.equals("yyyyå¹´MMæœˆddæ—¥")){
+				logger.info("fffff");
 			}
 			postdateRegExp = SimpleRegExpGen.genRegByDateFormat(dateFormat);
 			cssSelector = extractPostDateXpath();
@@ -117,53 +118,66 @@ public class PostdateSniffer {
 				}
 				longestDateFormat = longestDateFormat.length() > dateFormat.length() ? longestDateFormat:dateFormat;
 				postdateRegExp = longestDateFormat.length() > dateFormat.length() ? postdateRegExp : entry.getKey();
-				//System.out.println(longestDateFormat + "\n"+postdateRegExp+"\n\n\n");
+				//logger.info(longestDateFormat + "\n"+postdateRegExp+"\n\n\n");
 			}*/
 		}
-		//System.out.println(postdateRegExp+"\n"+longestDateFormat+"\n\n\n\n");
+		//logger.info(postdateRegExp+"\n"+longestDateFormat+"\n\n\n\n");
 		return dateFormat;
 	}
 
 	/**
-	 * Ñ­»·±éÀúËùÓĞµÄÎÄ±¾£¬ÕÒ³öÃ¿¸öÎÄ±¾µÄ·¢±íÈÕÆÚÇøÓò£¬¼ÆËãÇøÓòÖĞÃ¿¸ö×ÓÎÄ±¾µÄÕıÔò±í´ïÊ½£¬
-	 * ÕÒ³öÕıÔò±í´ïÊ½×î¶àµÄÒ»¸öentry£¬ÈÏ¶¨¸ÃentryÓëÕæÊµ·¢±íÈÕÆÚÏà¹Ø
+	 * å¾ªç¯éå†æ‰€æœ‰çš„æ–‡æœ¬ï¼Œæ‰¾å‡ºæ¯ä¸ªæ–‡æœ¬çš„å‘è¡¨æ—¥æœŸåŒºåŸŸï¼Œè®¡ç®—åŒºåŸŸä¸­æ¯ä¸ªå­æ–‡æœ¬çš„æ­£åˆ™è¡¨è¾¾å¼ï¼Œ
+	 * æ‰¾å‡ºæ­£åˆ™è¡¨è¾¾å¼æœ€å¤šçš„ä¸€ä¸ªentryï¼Œè®¤å®šè¯¥entryä¸çœŸå®å‘è¡¨æ—¥æœŸç›¸å…³
 	 * @return
 	 */
 	private Iterator<Entry<String, ArrayList<String>>> getPostdateRegAndValueList(){
-		List<String> postdateArea;
-		ArrayList<String> postDateRegExpList = new ArrayList<String>();
-		String postDateFormat = "";
-		//Ñ­»·¶à¸ödoc¶ÔÏó
-		for(Document doc : docs){
 
-			//ÌáÈ¡doc¶ÔÏóÖĞº¬ÓĞ·¢±íÈÕÆÚµÄ×Ö·û´®
-			postdateArea = extractPostdateListInDoc(doc);
+		List<Future> futureList = new ArrayList<>();
+		//å¾ªç¯å¤šä¸ªdocå¯¹è±¡
+		for(final Document doc : docs){
+			futureList.add(Constants.executorService.submit(new Runnable() {
+				@Override
+				public void run() {
+					//æå–docå¯¹è±¡ä¸­å«æœ‰å‘è¡¨æ—¥æœŸçš„å­—ç¬¦ä¸²
+					List<String> postdateArea;
+					String postDateFormat = "";
+					ArrayList<String> postDateRegExpList = new ArrayList<String>();
+					postdateArea = extractPostdateListInDoc(doc);
 
-			for(String postDateUnit : postdateArea){
-				//¼ÆËã¸ÃÈÕÆÚ×Ö·û´®µÄÕıÔò±í´ïÊ½£¬¼ÓÈëµ½Ò»¸ö
-				//TODO postDateRegExp = SimpleRegExpGen.genReg(postDateUnit);
-				postDateRegExpList.clear();
-				postDateRegExpList.add(postDateUnit);
-				postDateFormat = getDateFormat(postDateRegExpList);
-				if(postdateRegSet.containsKey(postDateFormat)){
-					postdateRegSet.get(postDateFormat).add(postDateUnit);
-				}else{
-					ArrayList<String> postDateUnitSets = new ArrayList<String>();
-					postDateUnitSets.add(postDateUnit);
-					postdateRegSet.put(postDateFormat, postDateUnitSets);
-				}
-				/*if(postdateRegSet.containsKey(postDateRegExp)){
-					postdateRegSet.get(postDateRegExp).add(postDateUnit);
-				}else{
-					ArrayList<String> postDateUnitSets = new ArrayList<String>();
-					postDateUnitSets.add(postDateUnit);
-					postdateRegSet.put(postDateRegExp, postDateUnitSets);
-				}*/
+					for(String postDateUnit : postdateArea){
+						if(StringUtils.isBlank(postDateUnit)){
+							continue;
+						}
+						//è®¡ç®—è¯¥æ—¥æœŸå­—ç¬¦ä¸²çš„æ­£åˆ™è¡¨è¾¾å¼ï¼ŒåŠ å…¥åˆ°ä¸€ä¸ª
+						//TODO postDateRegExp = SimpleRegExpGen.genReg(postDateUnit);
+						postDateRegExpList.clear();
+						postDateRegExpList.add(postDateUnit);
+						postDateFormat = getDateFormat(postDateRegExpList);
+						if(postDateFormat == null || postDateFormat.trim().length() < 5){
+							continue;
+						}
+						if(postdateRegSet.containsKey(postDateFormat)){
+							postdateRegSet.get(postDateFormat).add(postDateUnit);
+						}else{
+							ArrayList<String> postDateUnitSets = new ArrayList<String>();
+							postDateUnitSets.add(postDateUnit);
+							postdateRegSet.put(postDateFormat, postDateUnitSets);
+						}
+					}
+				}}));
+		}
+		for(Future future : futureList){
+			try {
+				future.get();
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			} catch (ExecutionException e) {
+				e.printStackTrace();
 			}
 		}
 
-		//·µ»ØÈÕÆÚÕıÔò±í´ïÊ½¼¯ºÏÖĞµÄµÚÒ»¸öÔªËØ£¬keyÎªÈÕÆÚÕıÔò±í´ïÊ½£¬valueÎªËùÓĞ·ûºÏ¸ÃÕıÔòµÄÈÕÆÚÁĞ±í
-		return MapUtil.sortMapByValue(postdateRegSet).entrySet().iterator();
+		//è¿”å›æ—¥æœŸæ­£åˆ™è¡¨è¾¾å¼é›†åˆä¸­çš„ç¬¬ä¸€ä¸ªå…ƒç´ ï¼Œkeyä¸ºæ—¥æœŸæ­£åˆ™è¡¨è¾¾å¼ï¼Œvalueä¸ºæ‰€æœ‰ç¬¦åˆè¯¥æ­£åˆ™çš„æ—¥æœŸåˆ—è¡¨
+ 		return MapUtil.sortMapByValue(postdateRegSet).entrySet().iterator();
 	}
 
 /*	private Iterator<Entry<String, ArrayList<String>>> getPostdateRegAndValueList2(){
@@ -185,7 +199,7 @@ public class PostdateSniffer {
 	} */
 
 	/**
-	 * ´ÓÒ»ÅúÈÕÆÚ×Ö·û´®ÖĞÌáÈ¡ÕâÅú×Ö·û´®µÄÈÕÆÚ¸ñÊ½×Ö·û´®
+	 * ä»ä¸€æ‰¹æ—¥æœŸå­—ç¬¦ä¸²ä¸­æå–è¿™æ‰¹å­—ç¬¦ä¸²çš„æ—¥æœŸæ ¼å¼å­—ç¬¦ä¸²
 	 * @param postdateList
 	 * @return
 	 */
@@ -198,7 +212,7 @@ public class PostdateSniffer {
 				return "";
 			}
 
-			//µÃµ½Ò»¸ö±»Ìæ»»·ûÌæ»»µôÈÕÆÚµ¥Î»µÄ×Ö·û´®
+			//å¾—åˆ°ä¸€ä¸ªè¢«æ›¿æ¢ç¬¦æ›¿æ¢æ‰æ—¥æœŸå•ä½çš„å­—ç¬¦ä¸²
 			String replacementPostdate = replacementTransform(postDate);
 			Set<String> dateDigitUnitsInOneIdx = new HashSet<String>();
 			Set<String> dateCharUnitsInOneIdx = new HashSet<String>();
@@ -207,14 +221,14 @@ public class PostdateSniffer {
 			String dateUnit = "";
 			for(int idx = 0; idx<length; idx++){
 
-				//»ñÈ¡µ½ÕâÅúÈÕÆÚ×Ö·û´®ÖĞÏàÍ¬µÄÈÕÆÚµ¥Î»£¬ÈçËùÓĞµÄÄê£¬»òÕßËùÓĞµÄÔÂ
+				//è·å–åˆ°è¿™æ‰¹æ—¥æœŸå­—ç¬¦ä¸²ä¸­ç›¸åŒçš„æ—¥æœŸå•ä½ï¼Œå¦‚æ‰€æœ‰çš„å¹´ï¼Œæˆ–è€…æ‰€æœ‰çš„æœˆ
 				for(String postdate : postdateList){
 					dateUnit = StringUtil.splitIgnoreEmptyString(postdate, dataFormatSplitReplacement)[idx].trim();
 					if(dateUnit.length() == 0){
 						continue;
 					}
 					try{
-						//Èç¹ûÊÇÒ»¸öÊı×Ö£¬Ôò¼ÓÈëµ½dateUnitsInOneIdxÖĞ£¬ÒÔ±ãºóÃæÀûÓÃÊı×Ö·¶Î§²Â²â
+						//å¦‚æœæ˜¯ä¸€ä¸ªæ•°å­—ï¼Œåˆ™åŠ å…¥åˆ°dateUnitsInOneIdxä¸­ï¼Œä»¥ä¾¿åé¢åˆ©ç”¨æ•°å­—èŒƒå›´çŒœæµ‹
 						if(dateUnit.matches("\\d+")){
 							dateDigitUnitsInOneIdx.add(dateUnit);
 						}else{
@@ -222,23 +236,23 @@ public class PostdateSniffer {
 							break;
 						}
 					}catch(NumberFormatException e){
-						//Èç¹ûdateUnit²»ÊÇÊı×Ö¶øµ¼ÖÂÔÚ×ª»»Ê±·¢ÉúÒì³££¬Ôò¿ÉÒÔÈÏÎªËüÊÇÒ»¸ö×Ö·ûĞÍµÄÈÕÆÚÖµ£¬ÔòÔÚÊÕ¼¯ËùÓĞÏàÍ¬ÈÕÆÚµ¥Î»ºó×öÇî¾ÙÍÆ²â£»
+						//å¦‚æœdateUnitä¸æ˜¯æ•°å­—è€Œå¯¼è‡´åœ¨è½¬æ¢æ—¶å‘ç”Ÿå¼‚å¸¸ï¼Œåˆ™å¯ä»¥è®¤ä¸ºå®ƒæ˜¯ä¸€ä¸ªå­—ç¬¦å‹çš„æ—¥æœŸå€¼ï¼Œåˆ™åœ¨æ”¶é›†æ‰€æœ‰ç›¸åŒæ—¥æœŸå•ä½ååšç©·ä¸¾æ¨æµ‹ï¼›
 						dateCharUnitsInOneIdx.add(dateUnit);
 					}
 				}
 				if(!dateDigitUnitsInOneIdx.isEmpty()){
-					//Ê¹ÓÃÏàÍ¬µ¥Î»µÄÈÕÆÚÔªËØ£¬²Â²âÕâĞ©ÔªËØ¿ÉÄÜµÄµ¥Î»£¬ÊÇÄê£¬»¹ÊÇÔÂ¡£
+					//ä½¿ç”¨ç›¸åŒå•ä½çš„æ—¥æœŸå…ƒç´ ï¼ŒçŒœæµ‹è¿™äº›å…ƒç´ å¯èƒ½çš„å•ä½ï¼Œæ˜¯å¹´ï¼Œè¿˜æ˜¯æœˆã€‚
 					dateFormatUnit = guessDigitDateUnit(dateDigitUnitsInOneIdx, dateUnitSet,replacementPostdate);
 					if(dateFormatUnit.isEmpty()){
 						return "";
 					}
 					dateDigitUnitsInOneIdx.clear();
-					//°ÑÌæ»»·ûÔÙÊ¹ÓÃ²Â²âµ½µÄÈÕÆÚµ¥Î»Ìæ»»»ØÀ´£¬ÈçyyyyÄêMMÔÂddÈÕ
+					//æŠŠæ›¿æ¢ç¬¦å†ä½¿ç”¨çŒœæµ‹åˆ°çš„æ—¥æœŸå•ä½æ›¿æ¢å›æ¥ï¼Œå¦‚yyyyå¹´MMæœˆddæ—¥
 					replacementPostdate = replacementPostdate.replace("{"+idx+"}", dateFormatUnit);
 				}else if(!dateCharUnitsInOneIdx.isEmpty()){
 					dateFormatUnit = guessCharDateUnit(dateCharUnitsInOneIdx,replacementPostdate);
 					dateCharUnitsInOneIdx.clear();
-					//°ÑÌæ»»·ûÔÙÊ¹ÓÃ²Â²âµ½µÄÈÕÆÚµ¥Î»Ìæ»»»ØÀ´£¬ÈçyyyyÄêMMÔÂddÈÕ
+					//æŠŠæ›¿æ¢ç¬¦å†ä½¿ç”¨çŒœæµ‹åˆ°çš„æ—¥æœŸå•ä½æ›¿æ¢å›æ¥ï¼Œå¦‚yyyyå¹´MMæœˆddæ—¥
 					replacementPostdate = replacementPostdate.replace("{"+idx+"}", dateFormatUnit);
 				}
 			}
@@ -251,7 +265,7 @@ public class PostdateSniffer {
 	}
 
 	/**
-	 * ÀûÓÃÏàÍ¬µ¥Î»µÄÈÕÆÚÖµ£¬²Â²â³ö¿ÉÄÜÊÇÊ²Ã´ÈÕÆÚµ¥Î»
+	 * åˆ©ç”¨ç›¸åŒå•ä½çš„æ—¥æœŸå€¼ï¼ŒçŒœæµ‹å‡ºå¯èƒ½æ˜¯ä»€ä¹ˆæ—¥æœŸå•ä½
 	 * @param dataUnits
 	 * @param dateUnitSet
 	 * @return
@@ -271,11 +285,11 @@ public class PostdateSniffer {
 				}
 			}
 			try{
-			int value = Integer.parseInt(str);
-			maxValue = maxValue==0?value:maxValue;
-			maxValue = maxValue>value?maxValue:value;
-			minValue = minValue==0?value:minValue;
-			minValue = minValue<value?minValue:value;
+				int value = Integer.parseInt(str);
+				maxValue = maxValue==0?value:maxValue;
+				maxValue = maxValue>value?maxValue:value;
+				minValue = minValue==0?value:minValue;
+				minValue = minValue<value?minValue:value;
 			}catch(Exception e){
 				return "";
 			}
@@ -348,7 +362,7 @@ public class PostdateSniffer {
 	}
 
 	/**
-	 * Ê¹ÓÃÌæ»»·ûÌæ»»µôËùÓĞµÄÈÕÆÚµ¥Î»
+	 * ä½¿ç”¨æ›¿æ¢ç¬¦æ›¿æ¢æ‰æ‰€æœ‰çš„æ—¥æœŸå•ä½
 	 * @param postdate
 	 * @return
 	 */
@@ -363,40 +377,51 @@ public class PostdateSniffer {
 	}
 
 	/**
-	 * 1¡¢Ê¹ÓÃtitleXpathºÍcontentXpath¶Ô·¢±íÈÕÆÚ¶¨Î»
-	 * 2¡¢µÃµ½¶¨Î»ÇøÓòµÄÎÄ±¾ÄÚÈİ
-	 * 3¡¢È¥µôÎÄ±¾ÄÚÈİµÄ²»Ïà¹ØÎÄ×Ö£¬µÃµ½Ò»¸ö¸ü¼Ó¾«È·µÄ½á¹û
+	 * 1ã€ä½¿ç”¨titleXpathå’ŒcontentXpathå¯¹å‘è¡¨æ—¥æœŸå®šä½
+	 * 2ã€å¾—åˆ°å®šä½åŒºåŸŸçš„æ–‡æœ¬å†…å®¹
+	 * 3ã€å»æ‰æ–‡æœ¬å†…å®¹çš„ä¸ç›¸å…³æ–‡å­—ï¼Œå¾—åˆ°ä¸€ä¸ªæ›´åŠ ç²¾ç¡®çš„ç»“æœ
 	 * @param doc
 	 * @return
 	 */
 	private List<String> extractPostdateListInDoc(Document doc){
 		Element title = doc.select(titleXpath).first();
-		//System.out.println(title);
+		//logger.info(title);
 
 		Element content = doc.select(contentXpath).first();
 		if(title == null || content == null){
 			return new ArrayList<String>();
 		}
-		Element mainContent = content;
+		/*Element mainContent = content;
 		while(!mainContent.html().contains(title.html())){
 			mainContent = mainContent.parent();
-		}
+		}*/
 
-		//ÌáÈ¡ÕıÎÄ½ÚµãÓë±êÌâ½ÚµãµÄ×îĞ¡¸¸½Úµã£¬²¢ÒÆ³ıÕıÎÄ½ÚµãÄÚÈİ
-		String postArea = mainContent.text().replace(content.text(), "").replace(title.text(), "");
+		//æå–æ­£æ–‡èŠ‚ç‚¹ä¸æ ‡é¢˜èŠ‚ç‚¹çš„æœ€å°çˆ¶èŠ‚ç‚¹ï¼Œå¹¶ç§»é™¤æ­£æ–‡èŠ‚ç‚¹å†…å®¹
+		/*String postArea = mainContent.text().replace(content.text(), "").replace(title.text(), "");
 		while(mainContent.parent()!= null && (postArea == null || postArea.length()==0)){
 			mainContent = mainContent.parent();
 			postArea = mainContent.text().replace(content.text(), "").replace(title.text(), "");
+		}*/
+
+		if(doc.baseUri().contains("details")){
+			logger.info("---");
+		}
+		Elements eles = doc.getElementsContainingText(content.text());
+		Element target = eles.last();
+		while(!target.html().contains(title.html()) && target.parent() != null){
+			target = target.parent();
 		}
 
-		//´ÓÊ£ÏÂÄÚÈİÖĞÌáÈ¡·ûºÏÈÕÆÚ×Ö·û´®
-		List<String> postdateUnits = DateTimeFormatGen.postdateExtraction(postArea);
-		while(mainContent.parent()!= null && (postdateUnits == null || postdateUnits.size() == 0)){
+		//ä»å‰©ä¸‹å†…å®¹ä¸­æå–ç¬¦åˆæ—¥æœŸå­—ç¬¦ä¸²
+
+		List<String> postdateUnits = new ArrayList<String>();
+		DateTimeFormatGen.postdateExtraction(postdateUnits, target, 0);
+		/*while(mainContent.parent()!= null && (postdateUnits == null || postdateUnits.size() == 0)){
 			mainContent = mainContent.parent();
 			postArea = mainContent.text().replace(content.text(), "").replace(title.text(), "");
 			postdateUnits = DateTimeFormatGen.postdateExtraction(postArea);
-		}
-		mainContents.add(mainContent);
+		}*/
+		mainContents.add(target);
 		return postdateUnits;
 	}
 
@@ -404,27 +429,32 @@ public class PostdateSniffer {
 
 
 	public String extractPostDateXpath(){
-		String postdateX = "";
-		if(postdateRegExp == null ||postdateRegExp.length() == 0 ){
-			return postdateX;
-		}
-		p = Pattern.compile(postdateRegExp,Pattern.LITERAL);
-		//p = Pattern.compile("\\d{4}Äê\\d{2}ÔÂ\\d{2}ÈÕ");
-		for(Element mainContent : mainContents){
-			postdateX = extractPostDateXpath(mainContent,p);
-			if(!postdateXpathSet.containsKey(postdateX)){
-				postdateXpathSet.put(postdateX, 1);
-			}else{
-				postdateXpathSet.put(postdateX, postdateXpathSet.get(postdateX)+1);
+		try{
+			String postdateX = "";
+			if(postdateRegExp == null ||postdateRegExp.length() == 0 ){
+				return postdateX;
 			}
+			p = Pattern.compile(postdateRegExp);
+			//p = Pattern.compile("\\d{4}å¹´\\d{2}æœˆ\\d{2}æ—¥");
+			for(Element mainContent : mainContents){
+				postdateX = extractPostDateXpath(mainContent,p);
+				if(!postdateXpathSet.containsKey(postdateX)){
+					postdateXpathSet.put(postdateX, 1);
+				}else{
+					postdateXpathSet.put(postdateX, postdateXpathSet.get(postdateX)+1);
+				}
+			}
+			return postdateXpathSet.size() > 0 ? MapUtil.sortMapByValue(postdateXpathSet).entrySet().iterator().next().getKey() : "";
+		}catch (Exception e){
+			logger.info("postdateRegExp:"+postdateRegExp+"\t\t"+e.getMessage());
+			return "";
 		}
-		return MapUtil.sortMapByValue(postdateXpathSet).entrySet().iterator().next().getKey();
 	}
 
 
 	private Pattern p;
 	/**
-	 * ÔÚmainContentÖĞÕÒµ½ÄÜÆ¥ÅäÉÏPatternµÄ×Ö·û´®µÄ×îĞ¡½Úµã
+	 * åœ¨mainContentä¸­æ‰¾åˆ°èƒ½åŒ¹é…ä¸ŠPatternçš„å­—ç¬¦ä¸²çš„æœ€å°èŠ‚ç‚¹
 	 * @param mainContent
 	 * @return
 	 */
@@ -437,7 +467,10 @@ public class PostdateSniffer {
 			}
 
 		}
-		for(Element ele : mainContent.children()){
+		for(Element ele : mainContent.getAllElements()){
+			if(ele == mainContent){
+				continue;
+			}
 			if(p.matcher(ele.text()).find()){
 				return extractPostDateXpath(ele,p);
 			}
@@ -472,8 +505,8 @@ public class PostdateSniffer {
 		PostdateSniffer postdateSniffer = new PostdateSniffer(docs,".newtittle > h1",".newscon");
 		//postdateSniffer.extractPostDate();
 		ArrayList<String> postDateRegExpList = new ArrayList<String>();
-		postDateRegExpList.add("2014Äê3ÔÂ1ÈÕ");
-		System.out.println(postdateSniffer.getDateFormat(postDateRegExpList));
+		postDateRegExpList.add("2014å¹´3æœˆ1æ—¥");
+//		logger.info(postdateSniffer.getDateFormat(postDateRegExpList));
 		//postdateSniffer.extractPostdateListInDoc(doc);
 	}
 
@@ -485,5 +518,5 @@ public class PostdateSniffer {
 		return postdateRegExp;
 	}
 
-	
+
 }

@@ -5,90 +5,92 @@ import java.util.concurrent.locks.ReentrantLock;
 public class WebsiteConfig {
 
 	private Integer id;
-	
+
 	/**
-	 * Èë¿ÚÁ´½Ó
+	 * å…¥å£é“¾æ¥
 	 */
 	private String entranceUrl;
 
 	/**
-	 * ±êÌâÔÚÒ³ÃæµÄxpath
+	 * æ ‡é¢˜åœ¨é¡µé¢çš„xpath
 	 */
 	private String titleXpath;
 
 	/**
-	 * ·¢±íÈÕÆÚÔÚÒ³ÃæµÄxpath
+	 * å‘è¡¨æ—¥æœŸåœ¨é¡µé¢çš„xpath
 	 */
 	private String postdateXpath;
 
 	/**
-	 * ·¢±íÈÕÆÚµÄÈÕÆÚ¸ñÊ½
+	 * å‘è¡¨æ—¥æœŸçš„æ—¥æœŸæ ¼å¼
 	 */
 	private String postdateFormat;
 
 	/**
-	 * ÕıÎÄÄÚÈİÔÚÒ³ÃæµÄxpath
+	 * æ­£æ–‡å†…å®¹åœ¨é¡µé¢çš„xpath
 	 */
 	private String contentXpath;
 
 	/**
-	 * ¸ÃÍøÕ¾Ê¹ÓÃµÄ±àÂë
+	 * è¯¥ç½‘ç«™ä½¿ç”¨çš„ç¼–ç 
 	 */
 	private String encoding;
 
 	/**
-	 * Õ¾µãÃû³Æ
+	 * ç«™ç‚¹åç§°
 	 */
 	private String webName;
 
 	private String groupName;
 
 	/**
-	 * Õ¾µãÓò
+	 * ç«™ç‚¹åŸŸ
 	 */
 	private String domain;
 
 	/**
-	 * Ã¿ÅÀÈ¡Ò»¸öÒ³ÃæÖ®ºó£¬Ïà¸ôcrawling_intervalÃëÔÙÅÀÈ¡
+	 * æ¯çˆ¬å–ä¸€ä¸ªé¡µé¢ä¹‹åï¼Œç›¸éš”crawling_intervalç§’å†çˆ¬å–
 	 */
 	private Integer crawling_interval;
 
 	/**
-	 * Èç¹û×î½üstopSecondsÃëÄÚÃ»ÓĞ»ñÈ¡µ½ĞÂÒ³Ãæ£¬ÔòÍ£Ö¹¼ÌĞøÅÀÈ¡
+	 * å¦‚æœæœ€è¿‘stopSecondsç§’å†…æ²¡æœ‰è·å–åˆ°æ–°é¡µé¢ï¼Œåˆ™åœæ­¢ç»§ç»­çˆ¬å–
 	 */
 	private Integer stopSeconds;
 
 	/**
-	 * Ö»ÓĞurl·ûºÏurlSourceNormÕıÔò±í´ïÊ½Ê±£¬²Å¼ÇÂ¼¸Ãurl
+	 * åªæœ‰urlç¬¦åˆurlSourceNormæ­£åˆ™è¡¨è¾¾å¼æ—¶ï¼Œæ‰è®°å½•è¯¥url
 	 */
 	private String urlSourceNorm;
 
 	/**
-	 * Ö»ÓĞurlĞèÒª·ûºÏurlNormÕıÔò±í´ïÊ½Ê±£¬²Å»ñÈ¡¸ÃurlµÄÄÚÈİ
+	 * åªæœ‰urléœ€è¦ç¬¦åˆurlNormæ­£åˆ™è¡¨è¾¾å¼æ—¶ï¼Œæ‰è·å–è¯¥urlçš„å†…å®¹
 	 */
 	private String urlPattern;
 
 	/**
-	 * Èç¹ûurlÖĞº¬ÓĞurlREPOrigin,ÔòÔÚÅÀÈ¡¸ÃÒ³ÃæÇ°Ìæ»»³ÉurlREPReplacement
+	 * å¦‚æœurlä¸­å«æœ‰urlREPOrigin,åˆ™åœ¨çˆ¬å–è¯¥é¡µé¢å‰æ›¿æ¢æˆurlREPReplacement
 	 */
 	private String urlREPOrigin,urlREPReplacement;
 
 	/**
-	 * Èç¹ûÒ³Ãæ²»º¬ÓĞurlPrefix,ÔòÌí¼Ó
+	 * å¦‚æœé¡µé¢ä¸å«æœ‰urlPrefix,åˆ™æ·»åŠ 
 	 */
 	private String urlPrefix;
 
 	private Integer status;
 
 	/**
-	 * ·¢±íÈÕÆÚÊÇ·ñ¿ÉÒÔ´ÓµØÖ·ÖĞ»ñÈ¡
+	 * å‘è¡¨æ—¥æœŸæ˜¯å¦å¯ä»¥ä»åœ°å€ä¸­è·å–
 	 */
 	private Integer postDate_is_from_url;
 
 	private Integer crawlDepth;
-	
+
+	private String sampleUrl;
+
 	public ReentrantLock selfDefineLock = new ReentrantLock();
-	
+
 	public Integer getCrawlDepth() {
 		return crawlDepth;
 	}
@@ -248,8 +250,16 @@ public class WebsiteConfig {
 	public void setStatus(Integer status) {
 		this.status = status;
 	}
-	
+
 	public boolean equals(WebsiteConfig websiteConfig){
 		return this.domain!= null && this.entranceUrl != null && this.domain.equals(websiteConfig.getDomain()) && this.entranceUrl.equals(websiteConfig.getEntranceUrl());
+	}
+
+	public String getSampleUrl() {
+		return sampleUrl;
+	}
+
+	public void setSampleUrl(String sampleUrl) {
+		this.sampleUrl = sampleUrl;
 	}
 }

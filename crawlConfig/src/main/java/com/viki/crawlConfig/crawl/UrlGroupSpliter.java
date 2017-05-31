@@ -1,6 +1,8 @@
 package com.viki.crawlConfig.crawl;
 
 import com.viki.crawlConfig.utils.MapUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -10,13 +12,15 @@ import java.util.Set;
 
 
 /**
- * 从一堆URL中找出符合同一个正则表达式，并且个数最多的分组
+ * 浠庝竴鍫哢RL涓壘鍑虹鍚堝悓涓�涓鍒欒〃杈惧紡锛屽苟涓斾釜鏁版渶澶氱殑鍒嗙粍
  * @author vikiyang
  *
  */
 public class UrlGroupSpliter {
 
 	private Set<String> docs;
+
+	Logger logger = LoggerFactory.getLogger(UrlGroupSpliter.class);
 
 	private HashMap<String,HashSet<String>> groups = new HashMap<String,HashSet<String>>();
 
@@ -27,7 +31,7 @@ public class UrlGroupSpliter {
 	public UrlGroupSpliter(){}
 
 	/**
-	 * 根据正则表达式计算该URL所在的分组
+	 * 鏍规嵁姝ｅ垯琛ㄨ揪寮忚绠楄URL鎵�鍦ㄧ殑鍒嗙粍
 	 * @return
 	 */
 	public Iterator<Entry<String, HashSet<String>>> seperateAndGetFirst(){
@@ -43,16 +47,16 @@ public class UrlGroupSpliter {
 		groups.remove(null);
 		return MapUtil.sortMapByValue(groups).entrySet().iterator();
 	}
-	
+
 	public static void main(String[] args){
 		UrlGroupSpliter urlGroupSpliter = new UrlGroupSpliter();
-		System.out.println(WebConfigSnifferUtil.getRegExpFromUrl("http://kuaixun.stcn.com/2015/0401/12145952.shtml"));
+//		logger.info(WebConfigSnifferUtil.getRegExpFromUrl("http://kuaixun.stcn.com/2015/0401/12145952.shtml"));
 		//urlGroupSpliter.test();
 	}
-	
+
 	public void test(){
-		System.out.println("http://kuaixun.stcn.com/2015/0401/12145952.shtml".matches("http://kuaixun.stcn.com/\\d{4}/\\d{4}/\\d{8}.\\w{5}"));
+//		logger.info("http://kuaixun.stcn.com/2015/0401/12145952.shtml".matches("http://kuaixun.stcn.com/\\d{4}/\\d{4}/\\d{8}.\\w{5}"));
 	}
-	
+
 }
 

@@ -1,74 +1,98 @@
 package com.viki.crawlConfig.crawl;
 
-import java.io.IOException;
-import java.net.URL;
-import java.util.HashMap;
-import java.util.Set;
-
+import com.viki.crawlConfig.bean.Constants;
 import com.viki.crawlConfig.utils.ConnectionFactory;
 import com.viki.crawlConfig.utils.MapUtil;
-import org.jsoup.Connection;
-import org.jsoup.nodes.Document;
-import org.jsoup.nodes.Element;
-
-
-
 import de.l3s.boilerpipe.document.TextDocument;
 import de.l3s.boilerpipe.extractors.ArticleExtractor;
 import de.l3s.boilerpipe.sax.BoilerpipeSAXInput;
 import de.l3s.boilerpipe.sax.HTMLDocument;
 import de.l3s.boilerpipe.sax.HTMLFetcher;
+import org.apache.commons.lang3.StringUtils;
+import org.jsoup.Connection;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.net.URL;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 
 /*
-* 正文提取
+* 姝ｆ枃鎻愬彇
 * */
 public class ContentSniffer {
 
+	static Logger logger = LoggerFactory.getLogger(ContentSniffer.class);
+
 	private Set<Document> docs;
-	
-	private HashMap<String,Integer> contentXpathSet =  new HashMap<String,Integer>();
-	
-	private static String contentXpath = "";
-	
+
+	private ConcurrentHashMap<String,Integer> contentXpathSet =  new ConcurrentHashMap<String,Integer>();
+
+//	private static String contentXpath = "";
+
 	private Connection conn = ConnectionFactory.getConnection().getValue();
-	
+
 	public ContentSniffer(Set<Document> docs){
 		this.docs = docs;
 	}
 	public ContentSniffer(){}
-	
-	
+
+
 	public String extractContentXpath(){
-		String contentX = "";
-		for(Document doc : docs){
-			contentX = extractContentXpath(doc);
-			if(!contentXpathSet.containsKey(contentX)){
-				contentXpathSet.put(contentX, 1);
-			}else{
-				contentXpathSet.put(contentX, contentXpathSet.get(contentX)+1);
+		List<Future> futureList = new ArrayList<>();
+		for(final Document doc : docs){
+			futureList.add(Constants.executorService.submit(new Runnable() {
+				@Override
+				public void run() {
+					String contentX = "";
+					contentX = extractContentXpath(doc);
+					if(!contentXpathSet.containsKey(contentX)){
+						contentXpathSet.put(contentX, 1);
+					}else{
+						contentXpathSet.put(contentX, contentXpathSet.get(contentX)+1);
+					}
+				}
+			}));
+		}
+		for(Future future : futureList){
+			try {
+				future.get();
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			} catch (ExecutionException e) {
+				e.printStackTrace();
 			}
 		}
 		contentXpathSet.remove("");
 		if(contentXpathSet.size() == 0){
-			return null;
+			return "";
 		}
-		return MapUtil.sortMapByValue(contentXpathSet).entrySet().iterator().next().getKey();
+		return contentXpathSet.size() > 0 ? MapUtil.sortMapByValue(contentXpathSet).entrySet().iterator().next().getKey() : "";
 	}
-	
+
 	private String extractContentXpath(Document doc){
 		String cssSelector = "";
 		TextDocument doct;
 		try {
-			HTMLDocument htmlDoc = HTMLFetcher.fetch(new URL(doc.baseUri()));
+//			TimeUnit.SECONDS.sleep(5);
+//			HTMLDocument htmlDoc = HTMLFetcher.fetch(new URL(doc.baseUri()));
+			HTMLDocument htmlDoc = new HTMLDocument(doc.html().getBytes(), doc.charset());
 			doct = new BoilerpipeSAXInput(htmlDoc.toInputSource()).getTextDocument();
 			String content = ArticleExtractor.INSTANCE.getText(doct);
 			cssSelector = getCssSelector(doc,getLongestRow(content));
-		} catch (Exception e) {}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 		return cssSelector;
 	}
-	
+
 	/**
-	 * 根据某个确定的地址，获取其最有可能的正文cssSelector
+	 * 鏍规嵁鏌愪釜纭畾鐨勫湴鍧�锛岃幏鍙栧叾鏈�鏈夊彲鑳界殑姝ｆ枃cssSelector
 	 * @param url
 	 * @return
 	 */
@@ -97,18 +121,24 @@ public class ContentSniffer {
 		return longestRow;
 	}
 
-	public  void getRoughSelector(Element parentEle,String matchedContent){
+	public  void getRoughSelector(Element parentEle,String matchedContent, StringBuilder contentXpath2){
+		String contentXpath = "";
+		String xx;
 		for(Element loopEle : parentEle.children()){
-			while(loopEle.text().replaceAll("[\\r\\n\\t\\f\\s\\u3000]", "").contains(matchedContent.replaceAll("[\\r\\n\\t\\f\\s\\u3000]", ""))){
-				contentXpath = loopEle.cssSelector();
-				getRoughSelector(loopEle,matchedContent);
-				return;
+			if(loopEle.text().replaceAll("[\\r\\n\\t\\f\\s\\u3000]", "").contains(matchedContent.replaceAll("[\\r\\n\\t\\f\\s\\u3000]", ""))){
+				contentXpath2 = StringUtils.isNotBlank(loopEle.cssSelector()) ? new StringBuilder(loopEle.cssSelector()) : contentXpath2;
+				contentXpathLocal.set(contentXpath2.toString());
+				getRoughSelector(loopEle,matchedContent, contentXpath2);
 			}
 		}
 	}
 
+	ThreadLocal<String> contentXpathLocal = new ThreadLocal<>();
+
 	public  String getCssSelector(Element parentEle,String matchedContent){
-		getRoughSelector(parentEle,matchedContent);
+		StringBuilder contentXpathBuilder = new StringBuilder("");
+		getRoughSelector(parentEle,matchedContent, contentXpathBuilder);
+		String contentXpath = contentXpathLocal.get().toString();
 		if(contentXpath != null){
 			while(contentXpath.contains(">")){
 				if(contentXpath.split(">")[contentXpath.split(">").length-1].contains("#")){
@@ -126,31 +156,22 @@ public class ContentSniffer {
 
 
 	public static void main(String[] args) {
-		ContentSniffer contentSniffer = new ContentSniffer();
 		if(Boolean.parseBoolean("true")){
 			System.setProperty("http.proxyHost", "192.168.91.11");
 			System.setProperty("http.proxyPort", "80");
 		}
-		String[] urls = {"http://news.xinhuanet.com/politics/2015-04/07/c_1114893481.htm","http://www.gov.cn/guowuyuan/2015-04/08/content_2843808.htm"
-				,"http://www.cankaoxiaoxi.com/roll/roll10/2015/0409/735199.shtml","http://d.youth.cn/tech_focus/201504/t20150409_6569408.html","http://wengengmiao.baijia.baidu.com/article/52893",
-				"http://www.thepaper.cn/baidu.jsp?contid=1318908","http://companies.caixin.com/2015-04-08/100798381.html?utm_source=baidu&utm_medium=caixin.media.baidu.com&utm_campaign=Hezuo","http://xinwen.ynet.com/3.1/1504/09/9974540.html",
-				"http://news.ifeng.com/a/20150409/43514376_0.shtml","http://www.thepaper.cn/baidu.jsp?contid=1319041","http://insurance.hexun.com/2015-04-09/174795337.html"};
+		String[] urls = {"http://news.xinhuanet.com/politics/2015-04/07/c_1114893481.htm",
+				"http://www.gov.cn/guowuyuan/2015-04/08/content_2843808.htm"};
+		HashSet<String> urlSet = new HashSet<>();
 		for(String url : urls){
-			String content = contentSniffer.extractContentXpath(url);
-			String longestRow = contentSniffer.getLongestRow(content);
-			Document doc;
-			try {
-				doc = ConnectionFactory.getConnection().url(url).get();
-				String cssSelector = contentSniffer.getCssSelector(doc,longestRow);
-				System.out.println("网页："+url);
-				System.out.println("元素选择器："+cssSelector);
-				System.out.println("正文"+doc.select(cssSelector).text() +"\n");
-			} catch (IOException e) {
-				continue;
-			}
+			urlSet.add(url);
 		}
-		
+		DocumentsGen documentsGen = new DocumentsGen(urlSet);
+		Set<Document> documents = documentsGen.gen();
+		ContentSniffer contentSniffer = new ContentSniffer(documents);
+		contentSniffer.extractContentXpath();
+
 	}
-	
+
 	private void test()throws IOException{}
 }

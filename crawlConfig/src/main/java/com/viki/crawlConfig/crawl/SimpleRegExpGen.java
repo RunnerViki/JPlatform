@@ -8,7 +8,7 @@ public class SimpleRegExpGen {
 		String preSign = "";
 		Integer preSignCount = 0;
 		for(Character c : sourceUrl.toCharArray()){
-			
+
 			//
 			if(Character.isDigit(c)){
 				preSign = preSign.isEmpty()?"\\d":preSign;
@@ -21,7 +21,7 @@ public class SimpleRegExpGen {
 				}
 			}else if(Character.isLetter(c)){
 				preSign = preSign.isEmpty()?"\\w":preSign;
-				if("ÄêÔÂÈÕ".contains(c.toString())){
+				if("å¹´æœˆæ—¥".contains(c.toString())){
 					groupName.append(preSign+"{"+preSignCount+"}"+c);
 					preSign = "";
 					preSignCount = 0;
@@ -46,17 +46,18 @@ public class SimpleRegExpGen {
 		}
 		return groupName.toString();
 	}
-	
+
 	public static String genRegByDateFormat(String dateFormat){
-		dateFormat = dateFormat.replaceAll("d+", "\\\\d{1,2}");
-		dateFormat = dateFormat.replaceAll("M+", "\\\\d{1,2}");
-		dateFormat = dateFormat.replaceAll("y{4}", "\\\\d{4}");
-		dateFormat = dateFormat.replaceAll("y{2}", "\\\\d{2}");
-		dateFormat = dateFormat.replaceAll("mm", "\\\\d{1,2}");
-		dateFormat = dateFormat.replaceAll("hh", "\\\\d{1,2}");
-		dateFormat = dateFormat.replaceAll("ss", "\\\\d{1,2}");
-		String dateFormatRegExp = new String(dateFormat);
+		String newDateFormat = "";
+		newDateFormat = dateFormat.replaceAll("d+", "\\\\d{1,2}");
+		newDateFormat = newDateFormat.replaceAll("M+", "\\\\d{1,2}");
+		newDateFormat = newDateFormat.replaceAll("y{4}", "\\\\d{4}");
+		newDateFormat = newDateFormat.replaceAll("y{2}", "\\\\d{2}");
+		newDateFormat = newDateFormat.replaceAll("mm", "\\\\d{1,2}");
+		newDateFormat = newDateFormat.replaceAll("hh", "\\\\d{1,2}");
+		newDateFormat = newDateFormat.replaceAll("ss", "\\\\d{1,2}");
+		String dateFormatRegExp = new String(newDateFormat);
 		return dateFormatRegExp;
 	}
-	
+
 }

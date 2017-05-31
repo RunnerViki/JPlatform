@@ -1,70 +1,131 @@
 package com.viki.crawlConfig.crawl;
 
-import java.io.IOException;
-import java.util.concurrent.ArrayBlockingQueue;
-
+import com.alibaba.fastjson.JSONObject;
+import com.viki.crawlConfig.bean.Constants;
+import com.viki.crawlConfig.bean.WebsiteConfig;
+import com.viki.crawlConfig.mapper.WebsiteConfigMapper;
+import com.viki.crawlConfig.utils.ConcurrentEntry;
 import com.viki.crawlConfig.utils.ConnectionFactory;
+import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
 
 
 /**
- * »Îø⁄≈¿»°œﬂ≥Ã
+ * ÂÖ•Âè£Áà¨ÂèñÁ∫øÁ®ã
  *
  * @author Administrator
  *
  */
 public class WebConfigJobProducer implements Runnable {
 
-	private ArrayBlockingQueue<String> webconfigJobQueue;
+	private ArrayBlockingQueue<ConcurrentEntry> webconfigJobQueue;
 
-	public WebConfigJobProducer(ArrayBlockingQueue<String> webconfigJobQueue){
+	Logger logger = LoggerFactory.getLogger(WebConfigJobProducer.class);
+
+	public WebConfigJobProducer(ArrayBlockingQueue<ConcurrentEntry> webconfigJobQueue){
 		this.webconfigJobQueue = webconfigJobQueue;
 		Thread.currentThread().setName("Thread"+Thread.activeCount()+":\tWebConfigJobProducer");
 	}
 
+	WebsiteConfigMapper websiteConfigMapper;
+
+	public WebConfigJobProducer(WebsiteConfigMapper websiteConfigMapper){
+		this.websiteConfigMapper = websiteConfigMapper;
+		this.webconfigJobQueue = WebConfigJobBalancer.uncrawledUrlQueue;
+		Thread.currentThread().setName("Thread"+Thread.activeCount()+":\tWebConfigJobProducer");
+	}
+
 	/*
-	 * ¥”∞Ÿ∂»RSSÕ∆ºˆ÷–ƒ√µΩ»Îø⁄µÿ÷∑£¨√ø Æ∑÷÷”÷¥––“ª¥Œ
+	 * ‰ªéÁôæÂ∫¶RSSÊé®Ëçê‰∏≠ÊãøÂà∞ÂÖ•Âè£Âú∞ÂùÄÔºåÊØèÂçÅÂàÜÈíüÊâßË°å‰∏ÄÊ¨°
 	 *
 	 * @see java.lang.Runnable#run()
 	 */
 	@Override
 	public void run() {
-		while(true){
-			try {
-				Thread.currentThread().sleep(1000);
-				baseEntrance();
-			} catch (InterruptedException e1) {
-				e1.printStackTrace();
+		try{
+			Thread.currentThread().setName("WebConfigJobProducer");
+			List<WebsiteConfig> rst = websiteConfigMapper.getList(new HashMap<String, Object>());
+			for(WebsiteConfig websiteConfig : rst){
+				WebConfigJobBalancer.allWebRegUrl.putIfAbsent(websiteConfig.getUrlPattern(), new ConcurrentEntry(websiteConfig.getUrlPattern(), new ConcurrentHashMap<String,
+						String>()).setIsUsed(true));
 			}
-		}
-	}
-
-	private void baseEntrance(){
-		try {
-			Document doc = ConnectionFactory.getConnection().url("http://blog.csdn.net").get();
-			Elements eles = doc.select("a[href]");
-			for(Element ele : eles ){
-				if(!WebConfigSnifferUtil.sourceLinksFilter(ele.attr("href"))){
-					continue;
-				}
-				String regExpUrl = WebConfigSnifferUtil.getRegExpFromUrl(ele.attr("href"));
-				if (!WebConfigJobBalancer.allWebRegUrl.containsKey(regExpUrl)) {
-					WebConfigJobBalancer.allWebRegUrl.put(regExpUrl, "");
-					WebConfigJobBalancer.allWebUrl.put(ele.attr("href"), "unused");
-					try {
-						webconfigJobQueue.put(ele.attr("href"));
-						WebConfigJobBalancer.allWebUrl.put(ele.attr("href"), "used");
-					} catch (InterruptedException e) {
-						try {
-							Thread.currentThread().sleep(1000);
-						} catch (InterruptedException e1) {
+			logger.info("ÂàùÂßãÂåñÁöÑÊ≠£ÂàôÂú∞ÂùÄ:"+WebConfigJobBalancer.allWebRegUrl);
+			while(true){
+				try {
+					baseEntrance();
+					for(String regUrl : WebConfigJobBalancer.allWebRegUrl.keySet()){
+						for(Map.Entry<String, String> url : WebConfigJobBalancer.allWebRegUrl.get(regUrl).getValue().entrySet()){
+							if("false".equals(url.getValue())){
+								try{
+									new UrlSniffer(url.getKey()).getUrls();
+									url.setValue("true");
+								}catch (Exception e){
+									logger.info(e.getMessage());
+								}
+							}
 						}
+					}
+				} catch (Exception e1) {
+					e1.printStackTrace();
+				}finally {
+					try {
+						Thread.currentThread().sleep(60000);
+					} catch (InterruptedException e) {
+						e.printStackTrace();
 					}
 				}
 			}
-		} catch (IOException e) {
+		}catch (Exception e){
+			logger.info("error\t"+e.getMessage());
+		}
+	}
+
+	String entrence = "http://www.51cto.com/";
+//	entrence = ;
+
+	private void baseEntrance(){
+		try {
+			Document doc = ConnectionFactory.getConnection()
+					.url("http://geek.csdn.net/service/news/get_news_list?username=&from=-&size=20&type=HackCount&_="+System.currentTimeMillis())
+					.ignoreContentType(true)
+					.get();
+			JSONObject docjson = JSONObject.parseObject(doc.text());
+			doc = Jsoup.parse(docjson.getString("html"));
+			Elements eles = doc.select("a[href]");
+			String attr;
+			ConcurrentHashMap<String,String> value;
+			ConcurrentEntry entry;
+			for(Element ele : eles ){
+				attr = ele.attr("href");
+				if(!WebConfigSnifferUtil.sourceLinksFilter(attr)){
+					continue;
+				}
+				String regExpUrl = WebConfigSnifferUtil.getRegExpFromUrl(attr);
+				if (!WebConfigJobBalancer.allWebRegUrl.containsKey(regExpUrl)) {
+					value = new ConcurrentHashMap<>(Constants.CRAWLED_GROUP_SIZE + 6);
+					value.putIfAbsent(attr, "false");
+					entry = new ConcurrentEntry(regExpUrl, value);
+					logger.info("Êñ∞Âä†Âú∞ÂùÄÊ≠£ÂàôregExpUrl:"+regExpUrl);
+					WebConfigJobBalancer.allWebRegUrl.put(regExpUrl, entry);
+				}else if((entry = WebConfigJobBalancer.allWebRegUrl.get(regExpUrl)) != null && !entry.getIsUsed() && (value = entry.getValue()) != null && !value.containsKey(attr)){
+					value.putIfAbsent(attr, "false");
+					logger.info("Âêëjobqueue‰∏≠Â∑≤Êúâentry("+regExpUrl+")Ê∑ªÂä†Êñ∞Âú∞ÂùÄ:"+attr);
+					if(value.size() >= Constants.CRAWLED_GROUP_SIZE && value.size() <= Constants.CRAWLED_GROUP_SIZE + 2 && !WebConfigJobBalancer.uncrawledUrlQueue.contains(entry)){
+						webconfigJobQueue.put(entry);
+					}
+				}
+			}
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 	}
@@ -73,7 +134,7 @@ public class WebConfigJobProducer implements Runnable {
 		Document doc;
 		for(int pn = 0;pn < 20; pn++){
 			try {
-				doc = ConnectionFactory.getConnection().url("http://cn.bing.com/search?q=≤∆æ≠").get();
+				doc = ConnectionFactory.getConnection().url("http://cn.bing.com/search?q=Ë¥¢Áªè").get();
 				Elements eles = doc.select("cite");
 				for(Element ele : eles ){
 					String regExpUrl = WebConfigSnifferUtil.getRegExpFromUrl(ele.text());
@@ -103,12 +164,12 @@ public class WebConfigJobProducer implements Runnable {
 		for (FeedMessage message : feed.getMessages()) {
 			String regExpUrl = WebConfigSnifferUtil.getRegExpFromUrl(message.getLink());
 
-			//»Áπ˚ «∞Ÿ∂»µƒ¡¥Ω”£¨‘ÚÃ¯π˝
+			//Â¶ÇÊûúÊòØÁôæÂ∫¶ÁöÑÈìæÊé•ÔºåÂàôË∑≥Ëøá
 			if(regExpUrl.contains("baidu.com")){
 				continue;
 			}
 
-			//»Áπ˚allWebUrl≤ª∫¨”–∏√µÿ÷∑£¨‘ŸÃÌº”µΩallWebUrl÷–
+			//Â¶ÇÊûúallWebUrl‰∏çÂê´ÊúâËØ•Âú∞ÂùÄÔºåÂÜçÊ∑ªÂä†Âà∞allWebUrl‰∏≠
 			if (!WebConfigJobBalancer.allWebRegUrl.containsKey(regExpUrl)) {
 				WebConfigJobBalancer.allWebRegUrl.put(regExpUrl, "");
 				WebConfigJobBalancer.allWebUrl.put(message.getLink(), "unused");

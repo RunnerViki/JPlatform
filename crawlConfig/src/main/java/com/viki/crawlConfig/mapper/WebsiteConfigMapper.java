@@ -21,9 +21,9 @@ public interface WebsiteConfigMapper {
     @Insert("insert into t_website_config(\n" +
             "entranceUrl,titleXpath,postdateXpath,postdateFormat,contentXpath,encoding," +
             "webName,groupName,domain,crawling_interval,stopSeconds,urlSourceNorm,urlPattern," +
-            "urlREPOrigin,urlREPReplacement,urlPrefix,`status`,postDate_is_from_url,crawlDepth\n" +
+            "urlREPOrigin,urlREPReplacement,urlPrefix,`status`,postDate_is_from_url,crawlDepth, sampleUrl" +
             ")values(#{cfg.entranceUrl}, #{cfg.titleXpath}, #{cfg.postdateXpath}, #{cfg.postdateFormat}, #{cfg.contentXpath}, #{cfg.encoding}, " +
             "#{cfg.webName}, #{cfg.groupName}, #{cfg.domain}, #{cfg.crawling_interval}, #{cfg.stopSeconds}, #{cfg.urlSourceNorm}, #{cfg.urlPattern}," +
-            " #{cfg.urlREPOrigin}, #{cfg.urlREPReplacement}, #{cfg.urlPrefix}, #{cfg.status}, #{cfg.postDate_is_from_url}, #{cfg.crawlDepth})")
+            " #{cfg.urlREPOrigin}, #{cfg.urlREPReplacement}, #{cfg.urlPrefix}, #{cfg.status}, #{cfg.postDate_is_from_url}, #{cfg.crawlDepth}, #{cfg.sampleUrl})")
     public int insert(@Param("cfg") WebsiteConfig websiteConfig);
 }

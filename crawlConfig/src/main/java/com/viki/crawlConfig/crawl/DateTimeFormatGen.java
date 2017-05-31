@@ -1,6 +1,11 @@
 package com.viki.crawlConfig.crawl;
 
 import com.viki.crawlConfig.utils.MapUtil;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.math.NumberUtils;
+import org.jsoup.nodes.Element;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -12,11 +17,11 @@ import java.util.regex.Pattern;
 
 
 /*
-* ÈÕÆÚ¸ñÊ½ÌáÈ¡
+* æ—¥æœŸæ ¼å¼æå–
 * */
 public class DateTimeFormatGen {
-	
-	 
+
+	Logger logger = LoggerFactory.getLogger(DateTimeFormatGen.class);
 	public static final List<String> months_MMMMM = Arrays.asList(new String[]{
 			"January","February","March","April","May","June"
 			,"July","August","September","October","November","December"});
@@ -24,8 +29,8 @@ public class DateTimeFormatGen {
 			"Jan","Feb","Mar","Apr","May","Jun"
 			,"Jul","Aug","Sep","Oct","Nov","Dec"});
 	public static final List<String> months_MMM_CHINA = Arrays.asList(new String[]{
-			"Ò»ÔÂ","¶şÔÂ","ÈıÔÂ","ËÄÔÂ","ÎåÔÂ","ÁùÔÂ"
-			,"ÆßÔÂ","°ËÔÂ","¾ÅÔÂ","Ê®ÔÂ","Ê®Ò»ÔÂ","Ê®¶şÔÂ"});
+			"ä¸€æœˆ","äºŒæœˆ","ä¸‰æœˆ","å››æœˆ","äº”æœˆ","å…­æœˆ"
+			,"ä¸ƒæœˆ","å…«æœˆ","ä¹æœˆ","åæœˆ","åä¸€æœˆ","åäºŒæœˆ"});
 
 	public static final List<String> AMPM = Arrays.asList(new String[]{"am","pm"});
 
@@ -34,38 +39,38 @@ public class DateTimeFormatGen {
 	public static final List<String> weekdays_EEEEE = Arrays.asList(new String[]{
 			"MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY","SATURDAY","SUNDAY"});
 	public static final List<String> weekdays_EEE_CHINA = Arrays.asList(new String[]{
-			"ĞÇÆÚÒ»","ĞÇÆÚ¶ş","ĞÇÆÚÈı","ĞÇÆÚËÄ","ĞÇÆÚÎå","ĞÇÆÚÁù","ĞÇÆÚÈÕ"});
-	public static final List<String> timeUnit_Chinese = Arrays.asList(new String[]{"Äê","ÔÂ","ÈÕ","Ê±","·Ö","Ãë"});
+			"æ˜ŸæœŸä¸€","æ˜ŸæœŸäºŒ","æ˜ŸæœŸä¸‰","æ˜ŸæœŸå››","æ˜ŸæœŸäº”","æ˜ŸæœŸå…­","æ˜ŸæœŸæ—¥"});
+	public static final List<String> timeUnit_Chinese = Arrays.asList(new String[]{"å¹´","æœˆ","æ—¥","æ—¶","åˆ†","ç§’"});
 
-	public static final List<String> timeUnit_Chinese_test = Arrays.asList(new String[]{"\\d+Äê","\\d+ÔÂ","\\d+ÈÕ","\\d+Ê±","\\d+·Ö","\\d+Ãë"});
+	public static final List<String> timeUnit_Chinese_test = Arrays.asList(new String[]{"\\d+å¹´","\\d+æœˆ","\\d+æ—¥","\\d+æ—¶","\\d+åˆ†","\\d+ç§’"});
 
-	/*private static String postdateExtractReg = "(((\\d{2}|\\d{4})(?<=\\d+))(Ò»ÔÂ|¶şÔÂ|ÈıÔÂ|ËÄÔÂ|ÎåÔÂ|ÁùÔÂ|ÆßÔÂ|°ËÔÂ|¾ÅÔÂ|Ê®ÔÂ|Ê®Ò»ÔÂ|Ê®¶şÔÂ|Jan(uary)?|"
+	/*private static String postdateExtractReg = "(((\\d{2}|\\d{4})(?<=\\d+))(ä¸€æœˆ|äºŒæœˆ|ä¸‰æœˆ|å››æœˆ|äº”æœˆ|å…­æœˆ|ä¸ƒæœˆ|å…«æœˆ|ä¹æœˆ|åæœˆ|åä¸€æœˆ|åäºŒæœˆ|Jan(uary)?|"
         + "Feb(ruary)?|Mar(ch)?|Apr(il)?|May|Jun(e)?|Jul(y)?|Aug(ust)?|Sep(tember)?|Oct(ober)?|Nov(ember)?|Dec(ember)?|"
         + "am|pm|MON(DAY)?|TUE(SDAY)?|WED(NESDAY)?|THU(RSDAY)?|FRI(DAY)?|SAT(URDAY)?|SUN(DAY)?|"
-        + "ĞÇÆÚ[Ò»¶şÈıËÄÎåÁùÈÕ]|Äê|ÔÂ|ÈÕ|Ê±|·Ö|Ãë|\\p{Punct}| )*)+";*/
+        + "æ˜ŸæœŸ[ä¸€äºŒä¸‰å››äº”å…­æ—¥]|å¹´|æœˆ|æ—¥|æ—¶|åˆ†|ç§’|\\p{Punct}| )*)+";*/
 
-	//2015-04-18:Ìí¼Ó\\p{Zs}£¬Ö§³ÖÈ«½Ç¿Õ¸ñ
+	//2015-04-18:æ·»åŠ \\p{Zs}ï¼Œæ”¯æŒå…¨è§’ç©ºæ ¼
 	/*private static String postdateExtractReg = "(((\\d{1}|\\d{2}|\\d{4})(?<=\\d))" +
-			"(Ò»ÔÂ|¶şÔÂ|ÈıÔÂ|ËÄÔÂ|ÎåÔÂ|ÁùÔÂ|ÆßÔÂ|°ËÔÂ|¾ÅÔÂ|Ê®ÔÂ|Ê®Ò»ÔÂ|Ê®¶şÔÂ|" +
+			"(ä¸€æœˆ|äºŒæœˆ|ä¸‰æœˆ|å››æœˆ|äº”æœˆ|å…­æœˆ|ä¸ƒæœˆ|å…«æœˆ|ä¹æœˆ|åæœˆ|åä¸€æœˆ|åäºŒæœˆ|" +
 			"Jan(uary)?|Feb(ruary)?|Mar(ch)?|Apr(il)?|May|Jun(e)?|Jul(y)?|Aug(ust)?|Sep(tember)?|Oct(ober)?|Nov(ember)?|Dec(ember)?|"
         + "am|pm|"
         + "MON(DAY)?|TUE(SDAY)?|WED(NESDAY)?|THU(RSDAY)?|FRI(DAY)?|SAT(URDAY)?|SUN(DAY)?|"
-        + "ĞÇÆÚ[Ò»¶şÈıËÄÎåÁùÈÕ]|Äê|ÔÂ|ÈÕ|Ê±|·Ö|Ãë|\\p{Punct}| |\\s|\\p{Zs})*)+";*/
+        + "æ˜ŸæœŸ[ä¸€äºŒä¸‰å››äº”å…­æ—¥]|å¹´|æœˆ|æ—¥|æ—¶|åˆ†|ç§’|\\p{Punct}| |\\s|\\p{Zs})*)+";*/
 
 	private static String postdateExtractReg = "(((\\d{1}|\\d{2}|\\d{4})(?<=\\d)" +
-			"|Ò»ÔÂ|¶şÔÂ|ÈıÔÂ|ËÄÔÂ|ÎåÔÂ|ÁùÔÂ|ÆßÔÂ|°ËÔÂ|¾ÅÔÂ|Ê®ÔÂ|Ê®Ò»ÔÂ|Ê®¶şÔÂ|" +
+			"|ä¸€æœˆ|äºŒæœˆ|ä¸‰æœˆ|å››æœˆ|äº”æœˆ|å…­æœˆ|ä¸ƒæœˆ|å…«æœˆ|ä¹æœˆ|åæœˆ|åä¸€æœˆ|åäºŒæœˆ|" +
 			"Jan(uary)?|Feb(ruary)?|Mar(ch)?|Apr(il)?|May|Jun(e)?|Jul(y)?|Aug(ust)?|Sep(tember)?|Oct(ober)?|Nov(ember)?|Dec(ember)?|"
-		+ "am|pm|"
-		+ "MON(DAY)?|TUE(SDAY)?|WED(NESDAY)?|THU(RSDAY)?|FRI(DAY)?|SAT(URDAY)?|SUN(DAY)?|"
-		+ "ĞÇÆÚ[Ò»¶şÈıËÄÎåÁùÈÕ]|Äê|ÔÂ|ÈÕ|Ê±|·Ö|Ãë|\\p{Punct}| |\\s|\\p{Zs})*)+";
+			+ "am|pm|"
+			+ "MON(DAY)?|TUE(SDAY)?|WED(NESDAY)?|THU(RSDAY)?|FRI(DAY)?|SAT(URDAY)?|SUN(DAY)?|"
+			+ "æ˜ŸæœŸ[ä¸€äºŒä¸‰å››äº”å…­æ—¥]|å¹´|æœˆ|æ—¥|æ—¶|åˆ†|ç§’|\\p{Punct}| |\\s|\\p{Zs})*)+";
 
 	public static void main(String[] args){
-		// 2015Äê04ÔÂ18ÈÕ?07:03??ĞÂÀË²Æ¾­?Î¢²© ÎÒÓĞ»°Ëµ ÊÕ²Ø±¾ÎÄ?? ??  ÎÄÕÂ¹Ø¼ü´Ê£º ²Æ¾­ÍâÃ½ÍâÃ½Í·°æÍ·°æ¼¯İÍ »¶Ó­·¢±íÆÀÂÛ ·ÖÏíµ½:
-		// http://www.sina.com.cn??2012Äê08ÔÂ21ÈÕ 10:31??ĞÂÀË²Æ¾­Î¢²©  ¡¾?ÊÖ»ú¿´ĞÂÎÅ?¡¿ ¡¾?ĞÂÀË²Æ¾­°É?¡¿
+		// 2015å¹´04æœˆ18æ—¥?07:03??æ–°æµªè´¢ç»?å¾®åš æˆ‘æœ‰è¯è¯´ æ”¶è—æœ¬æ–‡?? ??  æ–‡ç« å…³é”®è¯ï¼š è´¢ç»å¤–åª’å¤–åª’å¤´ç‰ˆå¤´ç‰ˆé›†èƒ æ¬¢è¿å‘è¡¨è¯„è®º åˆ†äº«åˆ°:
+		// http://www.sina.com.cn??2012å¹´08æœˆ21æ—¥ 10:31??æ–°æµªè´¢ç»å¾®åš  ã€?æ‰‹æœºçœ‹æ–°é—»?ã€‘ ã€?æ–°æµªè´¢ç»å§?ã€‘
 		List<String> dts = postdateExtraction("2016-07-19 09:04");
-		//List<String> dts = postdateExtraction(" ¡¾´òÓ¡¡¿¡¾·±Ìå¡¿2014Äê1ÔÂ27ÈÕ ÖĞ¹úĞĞÒµÑĞ¾¿Íøhttp://www.chinairn.com ÖĞÑĞÆÕ»ª±¨µÀ£º ½ğÆÖîÑÒµÏà¹ØÑĞ¾¿±¨¸æ 2014-2018Äê°æ¸ÊÓÍÁ×ËáÄÆÏîÄ¿¿ÉĞĞĞÔÑĞ¾¿±¨¸æ 2014-2018Äê°æ¸ÊÓÍÏîÄ¿¿ÉĞĞĞÔÑĞ¾¿±¨¸æ 2014-2018Äê°æ¸Ê°±õ£ÀÒ°±ËáÏîÄ¿¿ÉĞĞĞÔÑĞ¾¿±¨¸æ 2014-2018ÄêÖĞ¹úÖÖÒÂ¼ÁĞĞÒµÊĞ³¡¾ºÕù¸ñ¾ÖÓëÍ¶×Ê·çÏÕ·ÖÎö 2014-2018Äê°æ¸Ê°±ËáÏîÄ¿¿ÉĞĞĞÔÑĞ¾¿±¨¸æ 2014-2018ÄêÖĞ¹úÖÆÀä¼ÁĞĞÒµÊĞ³¡¾ºÕù¸ñ¾ÖÓëÍ¶×Ê·çÏÕ·ÖÎö 2014-2018ÄêÖĞ¹úÏğ½ºÈÜ¼ÁĞĞÒµÊĞ³¡¾ºÕù¸ñ¾ÖÓëÍ¶×Ê·çÏÕ·Ö 2014-2018ÄêÖĞ¹úÏğ½ºÆ¬ĞĞÒµÊĞ³¡¾ºÕù¸ñ¾ÖÓëÍ¶×Ê·çÏÕ·ÖÎö ²é¿´¸ü¶àĞĞÒµ>>  ÉÏÒ»Ò³ 1 2 3 ÏÂÒ»Ò³ ±êÇ©£º½ğÆÖîÑÒµÑĞ¾¿±¨¸æ Ê¯ÓÍ»¯¹¤ĞĞÒµÊĞ³¡ÑĞ¾¿±¨¸æ ½ğÆÖîÑÒµĞĞÒµ×ÊÑ¶ ±¾ÎÄ·ÖÏíµØÖ·:http://www.chinairn.com/news/20140127/113208333.html ·ÖÏíµ½£º Ïà¹ØĞÂÎÅ ¡¤½ğÆÖîÑÒµÈ¥Äê¾»ÀûÍ¬±ÈÔö½üÒ»³É 2014/1/27 14:54:15 ¡¤2013Äê½ğÆÖîÑÒµÒµ¼¨¡°ÄæÊĞ¡±ÔöÒ»³É 2014/1/27 14:35:35 ¡¤½ğÆÖîÑÒµÉæÏÓÌ§¸ß×Ê²úÆÀ¹À¼Û¸ñ 2013/12/14 8:49:16 ¡¤½ğÆÖîÑÒµ¶¨ÔöÒÉÔÆ 2013/12/13 14:34:56 ¡¤½ğÆÖîÑÒµ¶¨ÔöÄ¼Í¶ÏîÄ¿ÒÉµã¶à 2013/12/7 9:01:51");
+		//List<String> dts = postdateExtraction(" ã€æ‰“å°ã€‘ã€ç¹ä½“ã€‘2014å¹´1æœˆ27æ—¥ ä¸­å›½è¡Œä¸šç ”ç©¶ç½‘http://www.chinairn.com ä¸­ç ”æ™®åæŠ¥é“ï¼š é‡‘æµ¦é’›ä¸šç›¸å…³ç ”ç©¶æŠ¥å‘Š 2014-2018å¹´ç‰ˆç”˜æ²¹ç£·é…¸é’ é¡¹ç›®å¯è¡Œæ€§ç ”ç©¶æŠ¥å‘Š 2014-2018å¹´ç‰ˆç”˜æ²¹é¡¹ç›®å¯è¡Œæ€§ç ”ç©¶æŠ¥å‘Š 2014-2018å¹´ç‰ˆç”˜æ°¨é…°é…ªæ°¨é…¸é¡¹ç›®å¯è¡Œæ€§ç ”ç©¶æŠ¥å‘Š 2014-2018å¹´ä¸­å›½ç§è¡£å‰‚è¡Œä¸šå¸‚åœºç«äº‰æ ¼å±€ä¸æŠ•èµ„é£é™©åˆ†æ 2014-2018å¹´ç‰ˆç”˜æ°¨é…¸é¡¹ç›®å¯è¡Œæ€§ç ”ç©¶æŠ¥å‘Š 2014-2018å¹´ä¸­å›½åˆ¶å†·å‰‚è¡Œä¸šå¸‚åœºç«äº‰æ ¼å±€ä¸æŠ•èµ„é£é™©åˆ†æ 2014-2018å¹´ä¸­å›½æ©¡èƒ¶æº¶å‰‚è¡Œä¸šå¸‚åœºç«äº‰æ ¼å±€ä¸æŠ•èµ„é£é™©åˆ† 2014-2018å¹´ä¸­å›½æ©¡èƒ¶ç‰‡è¡Œä¸šå¸‚åœºç«äº‰æ ¼å±€ä¸æŠ•èµ„é£é™©åˆ†æ æŸ¥çœ‹æ›´å¤šè¡Œä¸š>>  ä¸Šä¸€é¡µ 1 2 3 ä¸‹ä¸€é¡µ æ ‡ç­¾ï¼šé‡‘æµ¦é’›ä¸šç ”ç©¶æŠ¥å‘Š çŸ³æ²¹åŒ–å·¥è¡Œä¸šå¸‚åœºç ”ç©¶æŠ¥å‘Š é‡‘æµ¦é’›ä¸šè¡Œä¸šèµ„è®¯ æœ¬æ–‡åˆ†äº«åœ°å€:http://www.chinairn.com/news/20140127/113208333.html åˆ†äº«åˆ°ï¼š ç›¸å…³æ–°é—» Â·é‡‘æµ¦é’›ä¸šå»å¹´å‡€åˆ©åŒæ¯”å¢è¿‘ä¸€æˆ 2014/1/27 14:54:15 Â·2013å¹´é‡‘æµ¦é’›ä¸šä¸šç»©â€œé€†å¸‚â€å¢ä¸€æˆ 2014/1/27 14:35:35 Â·é‡‘æµ¦é’›ä¸šæ¶‰å«ŒæŠ¬é«˜èµ„äº§è¯„ä¼°ä»·æ ¼ 2013/12/14 8:49:16 Â·é‡‘æµ¦é’›ä¸šå®šå¢ç–‘äº‘ 2013/12/13 14:34:56 Â·é‡‘æµ¦é’›ä¸šå®šå¢å‹ŸæŠ•é¡¹ç›®ç–‘ç‚¹å¤š 2013/12/7 9:01:51");
 		for(String str : dts){
-			System.out.println(str);
+//			logger.info(str);
 		}
 	}
 
@@ -97,7 +102,7 @@ public class DateTimeFormatGen {
 		String str2 = ""+str_MMM_CHINA+"|"+str_months_MMMMM+"|"+str_months_MMM+"|"
 				+str_ampm+"|"+str_weekdays_EEE+"|"+str_weekdays_EEEEE+"|"+str_EEE_CHINA+"|"+str_timeUnit_Chinese+"";
 		String str = "((?!"+str2+")\\w)+";
-		//((?![ÕıÔò|Æ¥Åä])\\W)*
+		//((?![æ­£åˆ™|åŒ¹é…])\\W)*
 		Pattern pattern = Pattern.compile(str);
 		Matcher m = pattern.matcher(source);
 		while(m.find()){
@@ -117,7 +122,7 @@ public class DateTimeFormatGen {
 	}
 
 	/**
-	 * ÌáÈ¡Ò»¶ÎÎÄ±¾ÖĞµÄËùÓĞÈÕÆÚÖµ
+	 * æå–ä¸€æ®µæ–‡æœ¬ä¸­çš„æ‰€æœ‰æ—¥æœŸå€¼
 	 * @param sourc
 	 * @return
 	 */
@@ -125,18 +130,51 @@ public class DateTimeFormatGen {
 		source = source.replaceAll("( )+", " ");
 		List<String> postdates = new ArrayList<String>();
 		Pattern p = Pattern.compile(postdateExtractReg);
-        Matcher m = p.matcher(source);
-        while(m.find()){
-    		postdates.add(m.group().trim().replaceAll("(?<=.+)[\\p{Punct} ]+$", ""));
-        }
-        return postdates;
+		Matcher m = p.matcher(source);
+		String postDateTmp;
+		while(m.find()){
+			postDateTmp = m.group().trim().replaceAll("(?<=.+)[\\p{Punct} ]+$", "");
+			if(!StringUtils.isBlank(postDateTmp)){
+				postdates.add(postDateTmp);
+			}
+		}
+		return postdates;
+	}
+
+	public static void postdateExtraction(List<String> tmp, Element source, int depth){
+		if(depth > 50){
+			return;
+		}
+		for(Element ele : source.getAllElements()){
+			if(ele == source){
+				continue;
+			}
+			if(ele.getAllElements().size() > 1){
+				String txt = ele.text().replaceAll("( )+", " ");
+				Pattern p = Pattern.compile(postdateExtractReg);
+				Matcher m = p.matcher(txt);
+				if(m.find() && StringUtils.isNotBlank(m.group())){
+					postdateExtraction(tmp, ele, depth+1);
+				}
+			}else{
+				String txt = ele.text().replaceAll("( )+", " ");
+				Pattern p = Pattern.compile(postdateExtractReg);
+				Matcher m = p.matcher(txt);
+				String postDateTmp;
+				while(m.find()){
+					postDateTmp = m.group().trim().replaceAll("(?<=.+)[\\p{Punct} ]+$", "");
+					if(!StringUtils.isBlank(postDateTmp.trim()) && postDateTmp.length() > 4 && !NumberUtils.isDigits(postDateTmp)){
+						tmp.add(postDateTmp);
+					}
+				}
+			}
+		}
 	}
 
 
 
 	/**
-	 * Ê¹ÓÃ¶àÖÖ¸ñÊ½Æ¥Åä×Ö·û´®£¬²¢Ìæ»»
-	 * @param dateTimeStr
+	 * ä½¿ç”¨å¤šç§æ ¼å¼åŒ¹é…å­—ç¬¦ä¸²ï¼Œå¹¶æ›¿æ¢
 	 */
 	public static String checkOutNoneDigitPart(String result){
 		result = checkOutNoneDigitPartWithDatePattern(result,months_MMMMM,"{MMMMM}");
@@ -150,7 +188,7 @@ public class DateTimeFormatGen {
 	}
 
 	/**
-	 * Ê¹ÓÃÖ¸¶¨×Ö·ûÈ¥Æ¥ÅäÈÕÆÚ×Ö·û´®
+	 * ä½¿ç”¨æŒ‡å®šå­—ç¬¦å»åŒ¹é…æ—¥æœŸå­—ç¬¦ä¸²
 	 * @param dateTimeStr
 	 * @param pattern
 	 * @param replacement
@@ -171,18 +209,18 @@ public class DateTimeFormatGen {
 
 
 	/**
-	 * ´¦ÀíÈÕÆÚÖĞµÄËùÓĞÖĞÎÄÈÕÆÚµ¥Î»
+	 * å¤„ç†æ—¥æœŸä¸­çš„æ‰€æœ‰ä¸­æ–‡æ—¥æœŸå•ä½
 	 * @param str
 	 * @return
 	 */
 	public static String handleDateTimeFormat(String str){
-		str = handleChineseTimeUnit(str,"\\w*\\d{1,2}Ãë","ssÃë");
-		str = handleChineseTimeUnit(str,"\\w*\\d{1,2}·Ö","mm·Ö");
-		str = handleChineseTimeUnit(str,"\\w*\\d{1,2}Ê±","hhÊ±");
-		str = handleChineseTimeUnit(str,"\\w*\\d{1,2}ÈÕ","ddÈÕ");
-		str = handleChineseTimeUnit(str,"\\w*\\d{1,2}ÔÂ","MMÔÂ");
-		str = handleChineseTimeUnit(str,"\\w*\\d{4}Äê","YYYYÄê");
-		str = handleChineseTimeUnit(str,"\\w*\\d{2}Äê","YYÄê");
+		str = handleChineseTimeUnit(str,"\\w*\\d{1,2}ç§’","ssç§’");
+		str = handleChineseTimeUnit(str,"\\w*\\d{1,2}åˆ†","mmåˆ†");
+		str = handleChineseTimeUnit(str,"\\w*\\d{1,2}æ—¶","hhæ—¶");
+		str = handleChineseTimeUnit(str,"\\w*\\d{1,2}æ—¥","ddæ—¥");
+		str = handleChineseTimeUnit(str,"\\w*\\d{1,2}æœˆ","MMæœˆ");
+		str = handleChineseTimeUnit(str,"\\w*\\d{4}å¹´","YYYYå¹´");
+		str = handleChineseTimeUnit(str,"\\w*\\d{2}å¹´","YYå¹´");
 
 		str = handleChineseTimeUnit(str,"\\d{1,2}:\\d{1,2}:\\d{1,2}","hh:mm:ss");
 		str = handleChineseTimeUnit(str,"\\d{1,2}:\\d{1,2}","hh:mm");
@@ -201,14 +239,14 @@ public class DateTimeFormatGen {
 	}
 
 	/**
-	 * »ñÈ¡µ½ÈÕÆÚ¸ñÊ½×Ö·û´®ÖĞµÄ·Ö¸ô·û
+	 * è·å–åˆ°æ—¥æœŸæ ¼å¼å­—ç¬¦ä¸²ä¸­çš„åˆ†éš”ç¬¦
 	 * @param dateTimeStr
 	 * @return
 	 */
 	private String getSpliter(String dateTimeStr){
 		LinkedHashMap<Character,Integer> notDigitCharacter = new LinkedHashMap<Character,Integer>();
 
-		//Í¨¹ıÑ­»·»ñÈ¡µ½ËùÓĞ
+		//é€šè¿‡å¾ªç¯è·å–åˆ°æ‰€æœ‰
 		for(Character c : dateTimeStr.toCharArray()){
 			if(!Character.isDigit(c) && !Character.isLetter(c)){
 				if(notDigitCharacter.containsKey(c)){
@@ -218,16 +256,16 @@ public class DateTimeFormatGen {
 				}
 			}
 		}
-		
-		
-		
+
+
+
 		MapUtil.isAsc = false;
 		Map<Character,Integer> rst = MapUtil.sortMapByValue(notDigitCharacter);
-		
+
 		//
 		String strArray = Arrays.toString(rst.keySet().toArray());
 		String[] dateEle = dateTimeStr.split(" |-|:");
 		return rst.entrySet().iterator().next().getKey().toString();
 	}
-	
+
 }

@@ -23,12 +23,12 @@ public class Engine {
 		TitleSniffer titleSniffer = new TitleSniffer(documents);
 		String titleXpath = titleSniffer.extractTitleXPath();
 		websiteConfig.setTitleXpath(titleXpath);
-		//System.out.println("titleXpath"+titleXpath);
+		//logger.info("titleXpath"+titleXpath);
 		
 		ContentSniffer contentSniffer = new ContentSniffer(documents);
 		String contentXpath = contentSniffer.extractContentXpath();
 		websiteConfig.setContentXpath(contentXpath);
-		//System.out.println("contentXpath"+contentXpath);
+		//logger.info("contentXpath"+contentXpath);
 		
 		PostdateSniffer postdateSniffer = new PostdateSniffer(documents,titleXpath,contentXpath);
 		String postdateXpath = postdateSniffer.extractPostDate();

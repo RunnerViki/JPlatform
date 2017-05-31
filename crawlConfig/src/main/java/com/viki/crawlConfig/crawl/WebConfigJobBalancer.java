@@ -1,32 +1,48 @@
 package com.viki.crawlConfig.crawl;
 
-import java.util.List;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.locks.ReentrantLock;
-
 import com.viki.crawlConfig.bean.Constants;
-import com.viki.crawlConfig.bean.WebsiteConfig;
 import com.viki.crawlConfig.mapper.WebsiteConfigMapper;
+import com.viki.crawlConfig.utils.ConcurrentEntry;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.ReentrantLock;
 
 
 @Component
 public class WebConfigJobBalancer {
 
 
-	public static final ArrayBlockingQueue<String> webconfigJobQueue = new ArrayBlockingQueue<String>(1000, false);
-	
+	Logger logger = LoggerFactory.getLogger(WebConfigJobBalancer.class);
+
+//	public static final ArrayBlockingQueue<String> webconfigJobQueue = new ArrayBlockingQueue<String>(100, false);
+
+	public static final ArrayBlockingQueue<ConcurrentEntry> uncrawledUrlQueue = new ArrayBlockingQueue<ConcurrentEntry>(100);
+
+	/*
+	* 所有获取到的地址
+	* */
 	public static final ConcurrentHashMap<String,String> allWebUrl = new ConcurrentHashMap<String,String>();
-	
-	public static final ConcurrentHashMap<String,String> allWebRegUrl = new ConcurrentHashMap<String,String>();
-	
-	public static final Integer threshold = 5; 
-	
+
+	/*
+	* 所有没有爬取过页面的地址
+	* */
+//	public static final ConcurrentHashMap<String,String> allWebUrlNotCrawled = new ConcurrentHashMap<String,String>();
+
+	/*
+	* 所有爬取过的地址的简化正则
+	* */
+	public static final ConcurrentHashMap<String,ConcurrentEntry>allWebRegUrl = new ConcurrentHashMap<String,ConcurrentEntry>();
+
+	public static final Integer threshold = 5;
+
 	public static ReentrantLock procucerLock = new ReentrantLock(true);
-	
+
 	public static final String balancerLock = "";
 
 	@Autowired
@@ -34,19 +50,11 @@ public class WebConfigJobBalancer {
 
 	@Scheduled(fixedDelay = 86400000)
 	public void execute(){
-		 try {
-			List<WebsiteConfig> webs  = websiteConfigMapper.getList(null);
-			for(WebsiteConfig wc :webs){
-				allWebRegUrl.put(wc.getUrlPattern(), "");
-			}
-		} catch (Exception e) {
-		}
-		 
-		Constants.executorService.submit(new WebConfigJobProducer(webconfigJobQueue));
-//		Constants.executorService.submit(new WebConfigJobConsumer(webconfigJobQueue));
-		Constants.executorService.submit(new WebConfigJobConsumer(webconfigJobQueue));
+		Constants.executorService.submit(new WebConfigJobProducer(websiteConfigMapper));
+//		Constants.executorService.submit(new WebConfigJobConsumer(websiteConfigMapper));
+		Constants.executorService.submit(new WebConfigJobConsumer(websiteConfigMapper));
 		Constants.executorService.submit(new ThreadMonitor());
-		System.out.println("������");
+		logger.info("启动咯");
 	}
 	/*
 	public static Connection conn;
@@ -70,7 +78,7 @@ public class WebConfigJobBalancer {
 			for(Element e : eles){
 				WebsiteConfig wc = new WebsiteConfig();
 				wc.setEntranceUrl(e.attr("href"));
-				System.out.println(e.attr("href"));
+				logger.info(e.attr("href"));
 			}
 		}
 	
