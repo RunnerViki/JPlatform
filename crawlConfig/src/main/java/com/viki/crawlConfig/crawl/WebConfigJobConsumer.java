@@ -11,7 +11,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.jsoup.nodes.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.Arrays;
 import java.util.Map.Entry;
@@ -32,7 +31,6 @@ public class WebConfigJobConsumer implements Runnable {
 			this.webconfigJobQueue = webconfigJobQueue;
 	}
 
-	@Autowired
 	WebsiteConfigMapper websiteConfigMapper;
 
 	public WebConfigJobConsumer(WebsiteConfigMapper websiteConfigMapper) {
@@ -68,15 +66,21 @@ public class WebConfigJobConsumer implements Runnable {
 				}
 				WebsiteConfig websiteConfig = new WebsiteConfig();
 				Set<String> subset = ImmutableSet.copyOf(Iterables.limit(entranceEntry.getValue().keySet(), Constants.CRAWLED_GROUP_SIZE));
+				logger.info("开始整理url:\t"+JSONObject.toJSONString(subset) +"\t正则:"+entranceEntry.getKey());
 				DocumentsGen documentsGen = new DocumentsGen(subset);
 				Set<Document> documents = documentsGen.gen();
+				if(documents.size() == 0){
+					continue;
+				}
 
 				TitleSniffer titleSniffer = new TitleSniffer(documents);
 				String titleXpath = titleSniffer.extractTitleXPath();
+				logger.info("标题xpath:\t"+titleXpath);
 				websiteConfig.setTitleXpath(titleXpath);
 
 				ContentSniffer contentSniffer = new ContentSniffer(documents);
 				String contentXpath = contentSniffer.extractContentXpath();
+				logger.info("正文xpath:\t"+contentXpath);
 				websiteConfig.setContentXpath(contentXpath);
 
 				if(StringUtils.isNotBlank(titleXpath) && StringUtils.isNotBlank(contentXpath)){
@@ -84,12 +88,14 @@ public class WebConfigJobConsumer implements Runnable {
 					String postdateXpath = postdateSniffer.extractPostDate();
 					websiteConfig.setPostdateXpath(postdateXpath);
 					websiteConfig.setPostdateFormat(postdateSniffer.getPostdateFormat());
+					logger.info("发表日期xpath:\t"+postdateXpath + "\t格式" + websiteConfig.getPostdateFormat());
 				}
+
 				websiteConfig.setUrlPattern(entranceEntry.getKey());
 				String entranceUrl = entranceEntry.getValue().keySet().iterator().next();
 				websiteConfig.setEntranceUrl(WebConfigSnifferUtil.getHostByUrl(entranceUrl,true));
 				websiteConfig.setDomain(WebConfigSnifferUtil.getHostByUrl(entranceUrl));
-				websiteConfig.setEncoding(documents.iterator().next().outputSettings().charset().name());
+				websiteConfig.setEncoding(documents.iterator().next().outputSettings().charset().name() );
 				websiteConfig.setWebName("");
 				websiteConfig.setGroupName("");
 				websiteConfig.setCrawling_interval(3000);

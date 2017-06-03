@@ -35,7 +35,7 @@ public class WebConfigJobBalancer {
 //	public static final ConcurrentHashMap<String,String> allWebUrlNotCrawled = new ConcurrentHashMap<String,String>();
 
 	/*
-	* 所有爬取过的地址的简化正则
+	* 所有爬取过的地址的简化正则, key是正则，value是符合该正则的地址列表
 	* */
 	public static final ConcurrentHashMap<String,ConcurrentEntry>allWebRegUrl = new ConcurrentHashMap<String,ConcurrentEntry>();
 
@@ -53,7 +53,7 @@ public class WebConfigJobBalancer {
 		Constants.executorService.submit(new WebConfigJobProducer(websiteConfigMapper));
 //		Constants.executorService.submit(new WebConfigJobConsumer(websiteConfigMapper));
 		Constants.executorService.submit(new WebConfigJobConsumer(websiteConfigMapper));
-		Constants.executorService.submit(new ThreadMonitor());
+		Constants.executorService.submit(new ThreadMonitor(websiteConfigMapper));
 		logger.info("启动咯");
 	}
 	/*

@@ -83,7 +83,7 @@ public class ContentSniffer {
 //			HTMLDocument htmlDoc = HTMLFetcher.fetch(new URL(doc.baseUri()));
 			HTMLDocument htmlDoc = new HTMLDocument(doc.html().getBytes(), doc.charset());
 			doct = new BoilerpipeSAXInput(htmlDoc.toInputSource()).getTextDocument();
-			String content = ArticleExtractor.INSTANCE.getText(doct);
+			String content = ArticleExtractor.INSTANCE.getText(doc.html());
 			cssSelector = getCssSelector(doc,getLongestRow(content));
 		} catch (Exception e) {
 			e.printStackTrace();

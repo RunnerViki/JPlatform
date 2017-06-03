@@ -408,7 +408,7 @@ public class PostdateSniffer {
 		}
 		Elements eles = doc.getElementsContainingText(content.text());
 		Element target = eles.last();
-		while(!target.html().contains(title.html()) && target.parent() != null){
+		while(!target.getAllElements().contains(title) && target.parent() != null){
 			target = target.parent();
 		}
 

@@ -17,6 +17,7 @@
         <thymeleaf-layout-dialect.version>2.1.1</thymeleaf-layout-dialect.version>
     </properties>
 
+
     <dependencies>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -37,6 +38,9 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <artifactId>maven-assembly-plugin</artifactId>
             </plugin>
         </plugins>
     </build>

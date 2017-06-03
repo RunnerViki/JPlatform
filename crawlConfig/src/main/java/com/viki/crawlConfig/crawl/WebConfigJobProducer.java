@@ -79,7 +79,7 @@ public class WebConfigJobProducer implements Runnable {
 					e1.printStackTrace();
 				}finally {
 					try {
-						Thread.currentThread().sleep(60000);
+						Thread.currentThread().sleep(3600000);
 					} catch (InterruptedException e) {
 						e.printStackTrace();
 					}
@@ -115,11 +115,11 @@ public class WebConfigJobProducer implements Runnable {
 					value = new ConcurrentHashMap<>(Constants.CRAWLED_GROUP_SIZE + 6);
 					value.putIfAbsent(attr, "false");
 					entry = new ConcurrentEntry(regExpUrl, value);
-					logger.info("新加地址正则regExpUrl:"+regExpUrl);
+//					logger.info("新加地址正则regExpUrl:"+regExpUrl);
 					WebConfigJobBalancer.allWebRegUrl.put(regExpUrl, entry);
 				}else if((entry = WebConfigJobBalancer.allWebRegUrl.get(regExpUrl)) != null && !entry.getIsUsed() && (value = entry.getValue()) != null && !value.containsKey(attr)){
 					value.putIfAbsent(attr, "false");
-					logger.info("向jobqueue中已有entry("+regExpUrl+")添加新地址:"+attr);
+//					logger.info("向jobqueue中已有entry("+regExpUrl+")添加新地址:"+attr);
 					if(value.size() >= Constants.CRAWLED_GROUP_SIZE && value.size() <= Constants.CRAWLED_GROUP_SIZE + 2 && !WebConfigJobBalancer.uncrawledUrlQueue.contains(entry)){
 						webconfigJobQueue.put(entry);
 					}

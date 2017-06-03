@@ -1,12 +1,13 @@
 package com.viki.crawlConfig.crawl;
 
 import com.viki.crawlConfig.utils.ConnectionFactory;
+import org.apache.commons.lang3.StringUtils;
 import org.jsoup.Connection;
 import org.jsoup.nodes.Document;
 
-import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 
 public class DocumentsGen {
@@ -29,14 +30,23 @@ public class DocumentsGen {
 				if(targetDocs.size() >= docCapacity){
 					return targetDocs;
 				}
+				if(StringUtils.isEmpty(str)){
+					continue;
+				}
 				targetDocs.add(conn.url(str).get());
 				wrongThold = 3;
-			} catch (IOException e) {
+			} catch (Exception e) {
 				if(wrongThold -- <= 0){
 					return targetDocs;
 				}
 				
 				continue;
+			}finally {
+				try {
+					TimeUnit.SECONDS.sleep(10);
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
 			}
 		}
 		return targetDocs;

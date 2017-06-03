@@ -10,7 +10,6 @@ import org.jsoup.select.Elements;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -107,11 +106,11 @@ public class UrlSniffer {
 							value = new ConcurrentHashMap<>(Constants.CRAWLED_GROUP_SIZE + 5);
 							value.putIfAbsent(urlCrawled, "false");
 							entry = new ConcurrentEntry(regExpUrl, value);
-							logger.info("新加地址正则regExpUrl:"+regExpUrl);
+//							logger.info("新加地址正则regExpUrl:"+regExpUrl);
 							WebConfigJobBalancer.allWebRegUrl.put(regExpUrl, entry);
 						}else if((entry = WebConfigJobBalancer.allWebRegUrl.get(regExpUrl)) != null  && !entry.getIsUsed() && (value = entry.getValue()) != null && !value.containsKey(urlCrawled)){
 							value.putIfAbsent(urlCrawled, "false");
-							logger.info("向jobqueue中已有entry("+regExpUrl+")添加新地址:"+urlCrawled);
+//							logger.info("向jobqueue中已有entry("+regExpUrl+")添加新地址:"+urlCrawled);
 							if(value.size() >= Constants.CRAWLED_GROUP_SIZE && value.size() <= Constants.CRAWLED_GROUP_SIZE + 2 && !WebConfigJobBalancer.uncrawledUrlQueue.contains(entry)){
 								WebConfigJobBalancer.uncrawledUrlQueue.offer(entry);
 							}
@@ -128,7 +127,7 @@ public class UrlSniffer {
 							}
 						}*/
 					}
-				} catch (IOException e) {
+				} catch (Exception e) {
 					try {
 						Thread.currentThread().sleep(loopCount*100);
 					} catch (InterruptedException e1) {

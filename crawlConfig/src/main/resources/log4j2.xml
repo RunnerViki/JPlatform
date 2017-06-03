@@ -33,9 +33,9 @@
         </File>
     </Appenders>
     <Loggers>
-        <Logger name="com.viki" level="error" />
-        <Root level="error">
-            <!--<AppenderRef ref="info_file" />-->
+        <Logger name="com.viki" level="info" />
+        <Root level="info">
+            <AppenderRef ref="info_file" />
             <AppenderRef ref="error_file" />
             <AppenderRef ref="Console" />
         </Root>

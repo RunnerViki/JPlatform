@@ -89,6 +89,8 @@ public class WebsiteConfig {
 
 	private String sampleUrl;
 
+	private String checked_status;
+
 	public ReentrantLock selfDefineLock = new ReentrantLock();
 
 	public Integer getCrawlDepth() {
@@ -261,5 +263,13 @@ public class WebsiteConfig {
 
 	public void setSampleUrl(String sampleUrl) {
 		this.sampleUrl = sampleUrl;
+	}
+
+	public String getChecked_status() {
+		return checked_status;
+	}
+
+	public void setChecked_status(String checked_status) {
+		this.checked_status = checked_status;
 	}
 }
