@@ -41,7 +41,6 @@ public class TitleSniffer {
 				@Override
 				public void run() {
 					String cssSelectorTemp = "";
-					cssSelectorTemp = "";
 					Double cssSelectorDegree = 0.0D;
 					String title = "";
 					String webpageTitle;
@@ -90,7 +89,7 @@ public class TitleSniffer {
 	}
 
 
-	private void erxtractTitleXpathBySimiliarDegree(Element ele, String webPageTitle, String cssSelectorTemp, Double cssSelectorDegree){
+	public void erxtractTitleXpathBySimiliarDegree(Element ele, String webPageTitle, String cssSelectorTemp, Double cssSelectorDegree){
 		Double degree = getSimliarDegree(ele.text(),webPageTitle);
 		if(degree >= cssSelectorDegree){
 			try{

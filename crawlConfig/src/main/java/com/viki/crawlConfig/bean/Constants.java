@@ -45,7 +45,7 @@ public class Constants {
 
 //	public static GlobleConfig globleConfig;
 
-	public static final int CRAWLED_GROUP_SIZE = 50;
+	public static final int CRAWLED_GROUP_SIZE = 35;
 
 
 	/*static{ TODO

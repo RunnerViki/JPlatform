@@ -2,6 +2,10 @@ package com.viki.crawlConfig.crawl;
 
 public class SimpleRegExpGen {
 
+	public static void main(String[] args) {
+		SimpleRegExpGen.genReg("aasdfasdfdasfasdf");
+	}
+
 	public static String genReg(String sourceUrl){
 		StringBuilder groupName = new StringBuilder();
 		sourceUrl = sourceUrl.contains("?")?sourceUrl.substring(0,sourceUrl.indexOf("?")-1):sourceUrl;

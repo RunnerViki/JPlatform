@@ -1,5 +1,6 @@
 package com.viki.crawlConfig.crawl;
 
+import com.viki.crawlConfig.bean.Constants;
 import com.viki.crawlConfig.utils.ConnectionFactory;
 import org.apache.commons.lang3.StringUtils;
 import org.jsoup.Connection;
@@ -16,7 +17,7 @@ public class DocumentsGen {
 
 	private Connection conn = ConnectionFactory.getConnection().getValue();
 	
-	private Integer docCapacity = 50;
+	private Integer docCapacity = Constants.CRAWLED_GROUP_SIZE;
 	
 	public DocumentsGen(Set<String> targetUrls){
 		this.targetUrls = targetUrls;

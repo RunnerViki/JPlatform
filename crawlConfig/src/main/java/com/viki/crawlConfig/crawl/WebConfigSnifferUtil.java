@@ -5,26 +5,31 @@ import org.slf4j.LoggerFactory;
 
 public class WebConfigSnifferUtil {
 
-	Logger logger = LoggerFactory.getLogger(WebConfigSnifferUtil.class);
+	static Logger logger = LoggerFactory.getLogger(WebConfigSnifferUtil.class);
 
 	public static String getHostByUrl(String url){
 		return WebConfigSnifferUtil.getHostByUrl(url,false);
 	}
 	
 	public static String getHostByUrl(String url,boolean containProtocol){
-		if(!containProtocol){
-			url = url.replace("http://", "");
+		String protocol = "";
+		// 先补上http协议头
+		if(!url.startsWith("http://") && !url.startsWith("https://")){
+			url = "http://" + url;
+			protocol = "http://";
+		}else if(url.startsWith("http://")){
+			protocol = "http://";
+		}else if(url.startsWith("https://")){
+			protocol = "https://";
+		}else{
+			logger.error("未知协议");
+			return null;
 		}
-		url = url.contains(".net")?url.split(".net")[0]+".net":url;
-		url = url.contains(".com")?url.split(".com")[0]+".com":url;
-		url = url.contains(".cn")?url.split(".cn")[0]+".cn":url;
-		url = url.contains(".org")?url.split(".org")[0]+".org":url;
-		return url;
+		return containProtocol ? protocol + url.replace(protocol, "").split("/")[0] : url.replace(protocol, "").split("/")[0];
 	}
 	
 	/**
 	 * ����������ʽ
-	 * @param string
 	 * @return
 	 */
 	public static String getRegExpFromUrl(String sourceUrl){

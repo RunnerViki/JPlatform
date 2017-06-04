@@ -149,7 +149,6 @@ public class PostdateSniffer {
 							continue;
 						}
 						//计算该日期字符串的正则表达式，加入到一个
-						//TODO postDateRegExp = SimpleRegExpGen.genReg(postDateUnit);
 						postDateRegExpList.clear();
 						postDateRegExpList.add(postDateUnit);
 						postDateFormat = getDateFormat(postDateRegExpList);

@@ -1,6 +1,9 @@
 package com.viki.crawlConfig.crawl;
 
+import com.alibaba.fastjson.JSONObject;
+import com.alibaba.fastjson.TypeReference;
 import com.viki.crawlConfig.bean.Constants;
+import com.viki.crawlConfig.mapper.WebsiteCompletedMapper;
 import com.viki.crawlConfig.mapper.WebsiteConfigMapper;
 import com.viki.crawlConfig.utils.ConcurrentEntry;
 import org.slf4j.Logger;
@@ -9,6 +12,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
@@ -48,11 +54,38 @@ public class WebConfigJobBalancer {
 	@Autowired
 	WebsiteConfigMapper websiteConfigMapper;
 
+	@Autowired
+	WebsiteCompletedMapper websiteCompletedMapper;
+
+	public WebConfigJobBalancer(){
+		if(Files.exists(new File("G:\\record.txt").toPath())){
+			try {
+				allWebRegUrl.putAll(JSONObject.parseObject(new String(Files.readAllBytes(new File("G:\\record.txt").toPath())), new TypeReference<ConcurrentHashMap<String, ConcurrentEntry>>() {
+				}));
+				JSONObject content = JSONObject.parseObject(new String(Files.readAllBytes(new File("G:\\record.txt").toPath())));
+				for(String key1 : content.keySet()){
+					JSONObject item1  = content.getJSONObject(key1);
+					for(String key2 : item1.keySet()){
+						JSONObject item2  = item1.getJSONObject(key2);
+						ConcurrentHashMap tmp = new ConcurrentHashMap<String, String>();
+						for(String key3 : item2.keySet()){
+							tmp.put(key3, item2.getString(key3));
+						}
+						allWebRegUrl.put(key1, new ConcurrentEntry(key2, tmp));
+					}
+				}
+				System.out.println("加载上一次持久化的内容:"+allWebRegUrl.size());
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+	}
+
 	@Scheduled(fixedDelay = 86400000)
 	public void execute(){
 		Constants.executorService.submit(new WebConfigJobProducer(websiteConfigMapper));
-//		Constants.executorService.submit(new WebConfigJobConsumer(websiteConfigMapper));
-		Constants.executorService.submit(new WebConfigJobConsumer(websiteConfigMapper));
+		Constants.executorService.submit(new WebConfigJobConsumer(websiteConfigMapper, websiteCompletedMapper));
+		Constants.executorService.submit(new WebConfigJobConsumer(websiteConfigMapper, websiteCompletedMapper));
 		Constants.executorService.submit(new ThreadMonitor(websiteConfigMapper));
 		logger.info("启动咯");
 	}

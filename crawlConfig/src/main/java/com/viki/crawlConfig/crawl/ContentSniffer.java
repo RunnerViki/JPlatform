@@ -75,7 +75,7 @@ public class ContentSniffer {
 		return contentXpathSet.size() > 0 ? MapUtil.sortMapByValue(contentXpathSet).entrySet().iterator().next().getKey() : "";
 	}
 
-	private String extractContentXpath(Document doc){
+	public String extractContentXpath(Document doc){
 		String cssSelector = "";
 		TextDocument doct;
 		try {

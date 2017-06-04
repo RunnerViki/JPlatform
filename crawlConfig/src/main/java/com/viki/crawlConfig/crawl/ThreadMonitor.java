@@ -27,7 +27,7 @@ public class ThreadMonitor implements Runnable{
 	public void run() {
 		while(true){
 			try {
-	//			logger.info("WebConfigJobBalancer.allWebRegUrl:"+new Date()+"\t"+WebConfigJobBalancer.allWebRegUrl);
+				logger.info("WebConfigJobBalancer.allWebRegUrl:"+new Date()+"\t"+WebConfigJobBalancer.allWebRegUrl.size());
 				logger.info("WebConfigJobBalancer.webconfigJobQueue.size():"+new Date()+"\t"+WebConfigJobBalancer.uncrawledUrlQueue.size());
 				if(WebConfigJobBalancer.uncrawledUrlQueue.size() == 0){
 
@@ -38,14 +38,18 @@ public class ThreadMonitor implements Runnable{
 					}
 					int maxsize = 0;
 					for(String itemKey : WebConfigJobBalancer.allWebRegUrl.keySet()){
-						if(WebConfigJobBalancer.allWebRegUrl.get(itemKey).getIsUsed()){
-							continue;
+						try{
+							if(WebConfigJobBalancer.allWebRegUrl.get(itemKey).getIsUsed() || WebConfigJobBalancer.allWebRegUrl.get(itemKey).getValue().keySet().size() == 0){
+								continue;
+							}
+							String domainCrawledd= WebConfigSnifferUtil.getHostByUrl(WebConfigJobBalancer.allWebRegUrl.get(itemKey).getValue().keySet().toArray()[0].toString());
+							if(domains.containsKey(domainCrawledd)){
+								continue;
+							}
+							maxsize = maxsize > WebConfigJobBalancer.allWebRegUrl.get(itemKey).getValue().size() ? maxsize : WebConfigJobBalancer.allWebRegUrl.get(itemKey).getValue().size();
+						}catch (Exception e){
+							e.printStackTrace();
 						}
-						String domainCrawledd= WebConfigSnifferUtil.getHostByUrl(WebConfigJobBalancer.allWebRegUrl.get(itemKey).getValue().keySet().toArray()[0].toString());
-						if(domains.containsKey(domainCrawledd)){
-							continue;
-						}
-						maxsize = maxsize > WebConfigJobBalancer.allWebRegUrl.get(itemKey).getValue().size() ? maxsize : WebConfigJobBalancer.allWebRegUrl.get(itemKey).getValue().size();
 					}
 
 					if(maxsize <= 10){
@@ -61,7 +65,9 @@ public class ThreadMonitor implements Runnable{
 							if(domains.containsKey(domainCrawledd)){
 								continue;
 							}
-							WebConfigJobBalancer.uncrawledUrlQueue.offer(WebConfigJobBalancer.allWebRegUrl.get(itemKey));
+							if(!WebConfigJobBalancer.uncrawledUrlQueue.contains(WebConfigJobBalancer.allWebRegUrl.get(itemKey))){
+								WebConfigJobBalancer.uncrawledUrlQueue.offer(WebConfigJobBalancer.allWebRegUrl.get(itemKey));
+							}
 						}
 					}
 				}

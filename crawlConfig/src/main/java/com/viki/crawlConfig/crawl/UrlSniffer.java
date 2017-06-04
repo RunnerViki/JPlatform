@@ -112,7 +112,9 @@ public class UrlSniffer {
 							value.putIfAbsent(urlCrawled, "false");
 //							logger.info("向jobqueue中已有entry("+regExpUrl+")添加新地址:"+urlCrawled);
 							if(value.size() >= Constants.CRAWLED_GROUP_SIZE && value.size() <= Constants.CRAWLED_GROUP_SIZE + 2 && !WebConfigJobBalancer.uncrawledUrlQueue.contains(entry)){
-								WebConfigJobBalancer.uncrawledUrlQueue.offer(entry);
+								if(!WebConfigJobBalancer.uncrawledUrlQueue.contains(entry)){
+									WebConfigJobBalancer.uncrawledUrlQueue.offer(entry);
+								}
 							}
 						}
 
@@ -151,8 +153,11 @@ public class UrlSniffer {
 			return null;
 		}
 		if(!url.startsWith("http")  ){
-			if(!url.contains(WebConfigSnifferUtil.getHostByUrl(sourceUrl))){
-				url = sourceUrl.concat(url);
+			String hostUrl = WebConfigSnifferUtil.getHostByUrl(sourceUrl);
+			hostUrl = hostUrl.endsWith("/")? hostUrl.substring(0, hostUrl.length() - 1): hostUrl;
+			url = url.startsWith("/") ? url : "/"+url;
+			if(!url.contains(hostUrl)){
+				url = hostUrl.concat(url);
 			}else{
 				return null;
 			}

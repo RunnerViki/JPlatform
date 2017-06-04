@@ -15,6 +15,8 @@ public class ConcurrentEntry implements Map.Entry<String,ConcurrentHashMap<Strin
 
     private boolean isUsed = false;
 
+    public ConcurrentEntry(){}
+
     public ConcurrentEntry(String key, ConcurrentHashMap<String,String> value){
         this.key = key;
         this.member = value;
