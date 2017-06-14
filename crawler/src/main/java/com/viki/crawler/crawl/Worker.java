@@ -5,6 +5,7 @@ import com.viki.crawler.mapper.ArticleMapper;
 import com.viki.crawler.mapper.CrawlConfigMapper;
 import com.viki.crawler.utils.JsoupUtil;
 import com.viki.crawler.utils.SimpleRegExpGen;
+import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
@@ -71,7 +72,7 @@ public class Worker {
                     unCrawledPages.clear();
                     for(String key : crawlingPages.keySet()){
                         doc = JsoupUtil.getByConn().url(key).get();
-                        crawledPages.put(key, doc);
+                        crawledPages.put(doc.location(), doc);
                         eles = doc.select("a[href]");
                         for(Element ele : eles) {
                             if(unCrawledPages.size() > 999){
@@ -108,17 +109,18 @@ public class Worker {
                 ArticleDTO articleDTOCp;
                 for(String key : crawledPages.keySet()){
                     try{
+                        Document docTmp = Jsoup.parse(new String(new String(crawledPages.get(key).html().getBytes(crawledPages.get(key).charset()), map.get("encoding").toString()).getBytes(), "UTF8"));
                         matcher = pattern.matcher(key);
                         if(matcher.find()){
                             articleDTOCp = articleDTO.clone();
                             articleDTOCp.setUrl(key);
-                            articleDTOCp.setContent(crawledPages.get(key).select(map.get("content_path").toString()).html());
+                            articleDTOCp.setContent(docTmp.select(map.get("content_path").toString()).html());
                             try{
                                 if(map.get("postdate_path") != null && StringUtils.isNotEmpty(map.get("postdate_path").toString())){
-                                    articleDTOCp.setPost_date(simpleDateFormat.parse(crawledPages.get(key).select(map.get("postdate_path").toString()).text()));
+                                    articleDTOCp.setPost_date(simpleDateFormat.parse(docTmp.select(map.get("postdate_path").toString()).text()));
                                 }
                             }catch (Exception e){}
-                            articleDTOCp.setTitle(crawledPages.get(key).select(map.get("title_path").toString()).text());
+                            articleDTOCp.setTitle(docTmp.select(map.get("title_path").toString()).text());
                             articleMapper.insertArticle(articleDTOCp);
                         }else{
                             System.out.println(key);

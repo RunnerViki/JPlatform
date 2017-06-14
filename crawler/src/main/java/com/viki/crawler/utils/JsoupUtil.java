@@ -17,17 +17,11 @@ public class JsoupUtil {
 	private static final ThreadLocal<Connection> byConnBean = new ThreadLocal<Connection>(){
 		protected Connection initialValue() {
 			Connection connection = Jsoup.connect("https://www.baidu.com/");
-			connection.header("User-Agent", "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Mobile Safari/537.36");
-			connection.header("Accept", "application/json");
+			connection.header("User-Agent", "Mozilla/5.0 (Windows NT 6.1; WOW64; rv:53.0) Gecko/20100101 Firefox/53.0");
+			connection.header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8");
 			connection.header("Accept-Language", "zh-CN,zh;q=0.8");
 			connection.header("Accept-Encoding", "gzip, deflate");
 			connection.header("Referer", "https://www.baidu.com/");
-			connection.header("d-version", "1.0.0");
-			connection.header("X-Requested-With", "XMLHttpRequest");
-			connection.header("Content-Type", "application/json;charset=utf-8");
-			connection.header("client-os", "web");
-			connection.header("Cache-Control", "no-cache" );
-			connection.header("Pragma", "no-cache" );
 			connection.header("Connection", "keep-alive");
 			connection.ignoreContentType(true);
 			connection.ignoreHttpErrors(true);
