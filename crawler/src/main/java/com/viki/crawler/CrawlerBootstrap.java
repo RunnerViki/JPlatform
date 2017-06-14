@@ -1,6 +1,7 @@
 package com.viki.crawler;
 
 import com.viki.crawler.utils.CustomPropertyPlaceholderConfigurer;
+import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.ComponentScan;
@@ -16,11 +17,12 @@ import java.nio.charset.Charset;
  */
 @SpringBootApplication
 @ComponentScan({"com.viki.crawler"})
+@MapperScan("com.viki.crawler.mapper")
 @EnableScheduling
 public class CrawlerBootstrap {
 
         public static void main(String[] args) throws Exception {
-            CustomPropertyPlaceholderConfigurer.load(new FileInputStream(new File(ClassLoader.getSystemResource("crawler.properties").getFile())), Charset.defaultCharset());
+//            CustomPropertyPlaceholderConfigurer.load(new FileInputStream(new File(ClassLoader.getSystemResource("application.properties").getFile())), Charset.defaultCharset());
             SpringApplication.run(CrawlerBootstrap.class, args);
         }
 }
