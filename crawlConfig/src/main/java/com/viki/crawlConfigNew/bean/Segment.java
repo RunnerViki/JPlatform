@@ -7,7 +7,7 @@ import java.util.concurrent.locks.ReentrantLock;
 /**
  * Created by Viki on 2017/6/4.
  */
-public     class Segment extends ConcurrentHashMap<String,SiteHier> {
+public class Segment extends ConcurrentHashMap<String,SiteHier> {
     ReentrantLock reentrantLock = new ReentrantLock();
 
     public boolean tryLock(long timeout, TimeUnit unit)

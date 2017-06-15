@@ -1,16 +1,15 @@
 package com.viki.crawlConfigNew.crawl;
 
 
-import com.viki.crawlConfig.crawl.WebConfigSnifferUtil;
 import com.viki.crawlConfigNew.bean.ConcurrentHashMapWithSegment;
 import com.viki.crawlConfigNew.bean.Configuration;
 import com.viki.crawlConfigNew.bean.SiteHier;
+import com.viki.crawlConfigNew.mapper.SiteHierMapper;
 import com.viki.crawlConfigNew.utils.UrlSniffer;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Set;
 
 /**
@@ -19,6 +18,8 @@ import java.util.Set;
 @Component
 public class CrawlExpandArea implements Runnable{
 
+    @Autowired
+    SiteHierMapper siteHierMapper;
 
     @Override
     @Scheduled(fixedDelay = 86400)
@@ -38,22 +39,28 @@ public class CrawlExpandArea implements Runnable{
                         if(!root.isRoot()){
                             continue;
                         }
-                        HashMap<String, SiteHier> urlsMap = root.getUrlMap();
-                        for(SiteHier hier : urlsMap.values()){
+                        Set<String> keys = root.getUrlMap().keySet();
+                        for(String key1 : keys){
                             try{
+                                SiteHier hier = root.getUrlMap().get(key1);
                                 if(hier.isCompletedCrawled){
                                     continue;
                                 }
-                                urlSniffer = urlSniffer == null ? new UrlSniffer(hier.toString()) : urlSniffer;
+                                urlSniffer = urlSniffer == null ? new UrlSniffer(hier.toString(), siteHierMapper) : urlSniffer;
                                 urlSniffer.setEntranceUrl(hier.toString());
-                                Set<String> urls = urlSniffer.getUrls();
+                                urlSniffer.getUrls();
                             }catch (Exception e){
                                 e.printStackTrace();
                             }
                         }
                         synchronized (Configuration.siteHierBlockingQueue){
                             if((root = ConcurrentHashMapWithSegment.get(key)).getUrlMap().size() > Configuration.parseContentThroshold && !Configuration.siteHierBlockingQueue.contains(root)){
-                                Configuration.siteHierBlockingQueue.offer(root);
+//                                Configuration.siteHierBlockingQueue.offer(root);  TODO 暂时关掉 并且回收到root，
+                                System.out.println("回收前:\t"+ConcurrentHashMapWithSegment.keySet().size());
+                                root = null;
+                                System.gc();
+                                System.out.println("回收后:\t"+ConcurrentHashMapWithSegment.keySet().size());
+                                System.out.println();
                             }
                         }
                         root.destory(true);

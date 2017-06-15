@@ -1,12 +1,11 @@
 package com.viki.crawlConfigNew.utils;
 
-import com.viki.crawlConfig.bean.Constants;
-import com.viki.crawlConfig.crawl.WebConfigJobBalancer;
 import com.viki.crawlConfig.crawl.WebConfigSnifferUtil;
 import com.viki.crawlConfig.utils.ConcurrentEntry;
 import com.viki.crawlConfig.utils.ConnectionFactory;
 import com.viki.crawlConfigNew.bean.ConcurrentHashMapWithSegment;
 import com.viki.crawlConfigNew.bean.SiteHier;
+import com.viki.crawlConfigNew.mapper.SiteHierMapper;
 import org.apache.commons.lang3.StringUtils;
 import org.jsoup.Connection;
 import org.jsoup.nodes.Document;
@@ -35,25 +34,28 @@ public class UrlSniffer {
 
 	private Connection conn;
 
-	public UrlSniffer(String entranceUrl) {
-		this(entranceUrl, 300);
+	public UrlSniffer(String entranceUrl, SiteHierMapper siteHierMapper) {
+		this(entranceUrl, 300, siteHierMapper);
 	}
 
 	public void setEntranceUrl(String entranceUrl){
 		this.entranceUrl = entranceUrl;
 	}
 
-	public UrlSniffer(String entranceUrl, Integer maxSize) {
+	public UrlSniffer(String entranceUrl, Integer maxSize, SiteHierMapper siteHierMapper) {
 		this.entranceUrl = entranceUrl;
 		this.maxSize = maxSize;
 		this.conn = ConnectionFactory.getConnection().getValue();
+		this.siteHierMapper = siteHierMapper;
 	}
 
 	public static void main(String[] args){
-		UrlSniffer us = new UrlSniffer("http://kuaixun.stcn.com/2015/0408/12156763.shtml",200);
+//		UrlSniffer us = new UrlSniffer("http://kuaixun.stcn.com/2015/0408/12156763.shtml",200);
 //		us.test();
 		//logger.info(us.getHostByUrl(us.entranceUrl,true));
 	}
+
+	SiteHierMapper siteHierMapper;
 	
 	private SiteHier addSiteHier(String s){
 		String hostUrl;
@@ -61,7 +63,7 @@ public class UrlSniffer {
 		SiteHier tmpParentHier;
 		hostUrl = WebConfigSnifferUtil.getHostByUrl(s, true);
 		if(!ConcurrentHashMapWithSegment.containsKey(hostUrl)){
-			root = new SiteHier(hostUrl, null, false);
+			root = new SiteHier(hostUrl, null, false, siteHierMapper);
 			ConcurrentHashMapWithSegment.put(hostUrl, root);
 		}else{
 			root = ConcurrentHashMapWithSegment.get(hostUrl);
@@ -74,7 +76,7 @@ public class UrlSniffer {
 		}
 		for(int l = 0; l < length; l++){
 			if(!tmpParentHier.containSub(hierachys[l])){
-				SiteHier hier = new SiteHier(hierachys[l], tmpParentHier, (l == length - 1));
+				SiteHier hier = new SiteHier(hierachys[l], tmpParentHier, (l == length - 1), siteHierMapper);
 				tmpParentHier = hier;
 			}else{
 				for(SiteHier siteHier : tmpParentHier.getSubHier()){
@@ -117,6 +119,9 @@ public class UrlSniffer {
 					hostUrl = WebConfigSnifferUtil.getHostByUrl(url, true);
 					document = conn.timeout(3000).referrer(hostUrl).userAgent("Mozilla/5.0 (Windows NT 6.1; WOW64; rv:53.0) Gecko/20100101 Firefox/53.0").url(url).ignoreContentType(true).get();
 					SiteHier siteHier = addSiteHier(url);
+					if(siteHier == null){
+						continue;
+					}
 					siteHier.setDocument(document);
 					eles = document.select("a[href]");
 					for(Element ele : eles){

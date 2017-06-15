@@ -257,6 +257,33 @@ public class WebsiteConfig {
 		return this.domain!= null && this.entranceUrl != null && this.domain.equals(websiteConfig.getDomain()) && this.entranceUrl.equals(websiteConfig.getEntranceUrl());
 	}
 
+	public boolean equalsWithCrawlConfig(WebsiteConfig websiteConfig){
+		if(this.titleXpath == null && websiteConfig.titleXpath == null){
+		}else if(this.titleXpath.equals(websiteConfig.titleXpath)){
+		}else{
+			return false;
+		}
+
+		if(this.contentXpath == null && websiteConfig.contentXpath == null){
+		}else if(this.contentXpath.equals(websiteConfig.contentXpath)){
+		}else{
+			return false;
+		}
+
+		if(this.postdateXpath == null && websiteConfig.postdateXpath == null){
+		}else if(this.postdateXpath.equals(websiteConfig.postdateXpath)){
+		}else{
+			return false;
+		}
+
+		if(this.postdateFormat == null && websiteConfig.postdateFormat == null){
+		}else if(this.postdateFormat.equals(websiteConfig.postdateFormat)){
+		}else{
+			return false;
+		}
+		return true;
+	}
+
 	public String getSampleUrl() {
 		return sampleUrl;
 	}

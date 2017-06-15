@@ -56,20 +56,35 @@ public class DateTimeFormatGen {
         + "MON(DAY)?|TUE(SDAY)?|WED(NESDAY)?|THU(RSDAY)?|FRI(DAY)?|SAT(URDAY)?|SUN(DAY)?|"
         + "星期[一二三四五六日]|年|月|日|时|分|秒|\\p{Punct}| |\\s|\\p{Zs})*)+";*/
 
-    private static String postdateExtractReg = "(((\\d{1}|\\d{2}|\\d{4})(?<=\\d)" +
+    private static String postdateExtractRegOrign = "(((\\d{1}|\\d{2}|\\d{4})(?<=\\d)" +
             "|一月|二月|三月|四月|五月|六月|七月|八月|九月|十月|十一月|十二月|" +
             "Jan(uary)?|Feb(ruary)?|Mar(ch)?|Apr(il)?|May|Jun(e)?|Jul(y)?|Aug(ust)?|Sep(tember)?|Oct(ober)?|Nov(ember)?|Dec(ember)?|"
             + "am|pm|"
             + "MON(DAY)?|TUE(SDAY)?|WED(NESDAY)?|THU(RSDAY)?|FRI(DAY)?|SAT(URDAY)?|SUN(DAY)?|"
             + "星期[一二三四五六日]|年|月|日|时|分|秒|\\p{Punct}| |\\s|\\p{Zs})*)+";
 
+    private static String postdateExtractReg = "((((\\d{1}|\\d{2}|\\d{4})(?<=\\d)" +
+            "|一月|二月|三月|四月|五月|六月|七月|八月|九月|十月|十一月|十二月|" +
+            "Jan(uary)?|Feb(ruary)?|Mar(ch)?|Apr(il)?|May|Jun(e)?|Jul(y)?|Aug(ust)?|Sep(tember)?|Oct(ober)?|Nov(ember)?|Dec(ember)?|"
+            + "am|pm|"
+            + "MON(DAY)?|TUE(SDAY)?|WED(NESDAY)?|THU(RSDAY)?|FRI(DAY)?|SAT(URDAY)?|SUN(DAY)?|"
+            + "星期[一二三四五六日]|年|月|日|时|分|秒)+(\\p{Punct}| |\\s|\\p{Zs})*)*)+";
+
     public static void main(String[] args){
         // 2015年04月18日?07:03??新浪财经?微博 我有话说 收藏本文?? ??  文章关键词： 财经外媒外媒头版头版集萃 欢迎发表评论 分享到:
         // http://www.sina.com.cn??2012年08月21日 10:31??新浪财经微博  【?手机看新闻?】 【?新浪财经吧?】
-        List<String> dts = postdateExtraction("2016-07-19 09:04");
-        //List<String> dts = postdateExtraction(" 【打印】【繁体】2014年1月27日 中国行业研究网http://www.chinairn.com 中研普华报道： 金浦钛业相关研究报告 2014-2018年版甘油磷酸钠项目可行性研究报告 2014-2018年版甘油项目可行性研究报告 2014-2018年版甘氨酰酪氨酸项目可行性研究报告 2014-2018年中国种衣剂行业市场竞争格局与投资风险分析 2014-2018年版甘氨酸项目可行性研究报告 2014-2018年中国制冷剂行业市场竞争格局与投资风险分析 2014-2018年中国橡胶溶剂行业市场竞争格局与投资风险分 2014-2018年中国橡胶片行业市场竞争格局与投资风险分析 查看更多行业>>  上一页 1 2 3 下一页 标签：金浦钛业研究报告 石油化工行业市场研究报告 金浦钛业行业资讯 本文分享地址:http://www.chinairn.com/news/20140127/113208333.html 分享到： 相关新闻 ·金浦钛业去年净利同比增近一成 2014/1/27 14:54:15 ·2013年金浦钛业业绩“逆市”增一成 2014/1/27 14:35:35 ·金浦钛业涉嫌抬高资产评估价格 2013/12/14 8:49:16 ·金浦钛业定增疑云 2013/12/13 14:34:56 ·金浦钛业定增募投项目疑点多 2013/12/7 9:01:51");
+//        List<String> dts = postdateExtraction("2016-07-19 09:04");
+        List<String> dts = postdateExtraction(" 【打印】【繁体】2014年1月27日 中国行业研究网http://www.chinairn.com 中研普华报道： " +
+                "金浦钛业相关研究报告 2014-2018年版甘油磷酸钠项目可行性研究报告 2014-2018年版甘油项目可行性研究报告 " +
+                "2014-2018年版甘氨酰酪氨酸项目可行性研究报告 2014-2018年中国种衣剂行业市场竞争格局与投资风险分析 " +
+                "2014-2018年版甘氨酸项目可行性研究报告 2014-2018年中国制冷剂行业市场竞争格局与投资风险分析 " +
+                "2014-2018年中国橡胶溶剂行业市场竞争格局与投资风险分 2014-2018年中国橡胶片行业市场竞争格局与投资风险分析 " +
+                "查看更多行业>>  上一页 1 2 3 下一页 标签：金浦钛业研究报告 石油化工行业市场研究报告 金浦钛业行业资讯 " +
+                "本文分享地址:http://www.chinairn.com/news/20140127/113208333.html 分享到： 相关新闻 ·金浦钛业去年净利同比增近一成 " +
+                "2014/1/27 14:54:15 ·2013年金浦钛业业绩“逆市”增一成 2014/1/27 14:35:35 ·金浦钛业涉嫌抬高资产评估价格 2013/12/14 8:49:16 ·" +
+                "金浦钛业定增疑云 2013/12/13 14:34:56 ·金浦钛业定增募投项目疑点多 2013/12/07 09:01:51");
         for(String str : dts){
-//			logger.info(str);
+            System.out.println(str);
         }
     }
 

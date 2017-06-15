@@ -7,7 +7,7 @@ import java.util.concurrent.ArrayBlockingQueue;
  */
 public class Configuration {
 
-    public static final int parseContentThroshold = 100;
+    public static final int parseContentThroshold = 1000;
 
     public static final ArrayBlockingQueue<SiteHier> siteHierBlockingQueue = new ArrayBlockingQueue<SiteHier>(100);
 }

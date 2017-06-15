@@ -1,5 +1,6 @@
 package com.viki.crawlConfigNew.bean;
 
+import com.viki.crawlConfigNew.mapper.SiteHierMapper;
 import org.jsoup.nodes.Document;
 
 import java.util.HashMap;
@@ -11,13 +12,18 @@ import java.util.Set;
  * Created by Viki on 2017/6/4.
  */
 public class SiteHier {
+
+    private Integer id;
+
     private String hierName;
 
     private SiteHier parentHier;
 
     private SiteHier rootHier;
 
-    private int depth = 0;
+    private int depthCurrentHier = 0;
+
+    private int depthInTotal = 0;
 
     private Set<SiteHier> subHier = new HashSet<>();
 
@@ -36,22 +42,43 @@ public class SiteHier {
 
     private Document document;
 
-    public SiteHier(String name, SiteHier parentHier, boolean isLeaf){
+    private String docContent;
+
+    private  SiteHierMapper siteHierMapper;
+
+    public SiteHier(){}
+
+    public SiteHier(String name, SiteHier parentHier, boolean isLeaf, SiteHierMapper siteHierMapper){
         this.hierName = name;
         this.parentHier = parentHier;
         if(parentHier != null){
             parentHier.subHier.add(this);
-            this.depth = parentHier.depth + 1;
+            this.depthCurrentHier = parentHier.depthCurrentHier + 1;
             this.rootHier = parentHier.rootHier;
+            this.rootHier.depthInTotal = this.depthCurrentHier > this.rootHier.depthInTotal ? this.depthCurrentHier : this.rootHier.depthInTotal;
         }else{
             this.rootHier = this;
+            this.depthInTotal = 1;
             ConcurrentHashMapWithSegment.put(this.hierName, this);
-            this.depth = 1;
+            this.depthCurrentHier = 1;
             urls = new HashMap<>();
         }
-//        if(isLeaf){
-            this.rootHier.urls.put(this.toString(), this);
-//        }
+        this.rootHier.urls.put(this.toString(), this);
+        this.siteHierMapper = siteHierMapper;
+        try{
+            siteHierMapper.insert(this);
+            System.out.println("");
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+    }
+
+    public int getDepthInTotal(){
+        return this.rootHier.depthInTotal;
+    }
+
+    public int getDepthCurrentHier(){
+        return this.depthCurrentHier;
     }
 
     public boolean destory(boolean force) throws Exception {
@@ -67,7 +94,7 @@ public class SiteHier {
                     urls.remove(key);
                 }
             }
-            isCompletedCrawled = true;
+            isCompletedCrawled = URL_CRAWLED;
             System.gc();
             return true;
         }else{
@@ -133,11 +160,45 @@ public class SiteHier {
 
     public void setDocument(Document document) {
         this.document = document;
+        siteHierMapper.updateDocument(this);
+        this.document = null; // TODO 后面删
     }
 
     public String getHierName(){return this.hierName;}
 
     public void setWebsiteConfig(WebsiteConfig websiteConfig) {
         this.websiteConfig = websiteConfig;
+    }
+
+    public SiteHier getParentHier(){
+        return this.parentHier;
+    }
+
+    public Integer getId() {
+        return id;
+    }
+
+    public void setId(Integer id) {
+        this.id = id;
+    }
+
+    public SiteHier getRootHier(){
+        return this.rootHier;
+    }
+
+    public String getDocContent() {
+        return this.document == null ? "" : this.document.html();
+    }
+
+    public String getFullName(){
+        return this.toString();
+    }
+
+    public void setParentHier(SiteHier parentHier){
+        this.parentHier = parentHier;
+    }
+
+    public void setRootHier(SiteHier rootHier){
+        this.rootHier = rootHier;
     }
 }

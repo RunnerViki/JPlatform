@@ -3,3 +3,4 @@
 target
 *.iml
 /crawlConfig/*.iml
+application.properties

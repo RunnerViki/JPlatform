@@ -5,6 +5,7 @@ import com.viki.crawlConfig.crawl.DateTimeFormatGen;
 import com.viki.crawlConfig.crawl.SimpleRegExpGen;
 import com.viki.crawlConfig.utils.MapUtil;
 import com.viki.crawlConfig.utils.StringUtil;
+import com.viki.crawlConfigNew.bean.SiteHier;
 import org.apache.commons.lang3.StringUtils;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -52,6 +53,17 @@ public class PostdateSniffer {
 
 	public PostdateSniffer(Set<Document> docs, String titleXpath, String contentXpath){
 		this.docs = new ArrayList<Document>(docs);
+		this.titleXpath = titleXpath;
+		this.contentXpath = contentXpath;
+	}
+
+	public PostdateSniffer(SiteHier siteHierSet, String titleXpath, String contentXpath){
+		this.docs = new ArrayList<Document>(siteHierSet.getSubHier().size());
+		for(SiteHier siteHier : siteHierSet.getSubHier()){
+			if(siteHier.getDocument() != null){
+				docs.add(siteHier.getDocument());
+			}
+		}
 		this.titleXpath = titleXpath;
 		this.contentXpath = contentXpath;
 	}
@@ -411,7 +423,6 @@ public class PostdateSniffer {
 				return postdateX;
 			}
 			p = Pattern.compile(postdateRegExp);
-			//p = Pattern.compile("\\d{4}年\\d{2}月\\d{2}日");
 			for(Element mainContent : mainContents){
 				postdateX = extractPostDateXpath(mainContent,p);
 				if(!postdateXpathSet.containsKey(postdateX)){
@@ -494,5 +505,7 @@ public class PostdateSniffer {
 		return postdateRegExp;
 	}
 
-
+	public HashMap<String,Integer> getPostdateXpathSet(){
+		return this.postdateXpathSet;
+	}
 }
