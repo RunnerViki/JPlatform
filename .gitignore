@@ -4,3 +4,6 @@ target
 *.iml
 /crawlConfig/*.iml
 application.properties
+*.out
+*.log
+*.tld
