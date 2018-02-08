@@ -14,7 +14,7 @@ import java.util.List;
 @Mapper
 public interface CrawlConfigMapper {
 
-    @Select("select cc.* from t_crawl_config cc where cc.last_update > date_add(now(), interval - cc.period second)")
+    @Select("select cc.* from t_crawl_config cc where cc.last_update < date_add(now(), interval - cc.period second)")
     public List<HashMap<String,Object>> getList();
 
     @Update("update t_crawl_config set last_update = now() where url_reg = #{m.url_reg}")

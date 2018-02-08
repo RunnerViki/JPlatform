@@ -33,6 +33,8 @@ public class Worker {
     @Autowired
     ArticleMapper articleMapper;
 
+    int max_paged = 3000;
+
     HashMap<String,Document> crawledPages = new HashMap<String,Document>(1000);
 
     HashMap<String,Document> crawlingPages = new HashMap<String,Document>(1000);
@@ -75,7 +77,7 @@ public class Worker {
                         crawledPages.put(doc.location(), doc);
                         eles = doc.select("a[href]");
                         for(Element ele : eles) {
-                            if(unCrawledPages.size() > 999){
+                            if(unCrawledPages.size() > max_paged){
                                 break;
                             }
                             try{
@@ -90,7 +92,7 @@ public class Worker {
                                 e.printStackTrace();
                             }
                         }
-                        if(unCrawledPages.size() > 999){
+                        if(unCrawledPages.size() > max_paged){
                             break;
                         }
                     }
@@ -120,7 +122,11 @@ public class Worker {
                                     articleDTOCp.setPost_date(simpleDateFormat.parse(docTmp.select(map.get("postdate_path").toString()).text()));
                                 }
                             }catch (Exception e){}
-                            articleDTOCp.setTitle(docTmp.select(map.get("title_path").toString()).text());
+                            String title = docTmp.select(map.get("title_path").toString()).text();
+                            if (StringUtils.isBlank(title)){
+                                title = docTmp.title();
+                            }
+                            articleDTOCp.setTitle(title);
                             articleMapper.insertArticle(articleDTOCp);
                         }else{
                             System.out.println(key);
@@ -130,7 +136,7 @@ public class Worker {
 
                 crawlConfigMapper.update(map);
 
-            } catch (IOException e) {
+            } catch (Exception e) {
                 e.printStackTrace();
             }
         }

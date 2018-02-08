@@ -15,7 +15,7 @@ function rgb2hex(rgb) {
     return "#" + hex(rgb[1]) + hex(rgb[2]) + hex(rgb[3]);
 }
 $("#theme_switch").bind("click", function () {
-    var colors = ["#FFFFFF", "#FAF9DE", "#FFF2E2", "#FDE6E0", "#E3EDCD", "#DCE2F1", "#E9EBFE", "#EAEAEF"];
+    var colors = ["#FAF9DE", "#FFFFFF", "#FFF2E2", "#FDE6E0", "#E3EDCD", "#DCE2F1", "#E9EBFE", "#EAEAEF"];
     var color = rgb2hex($("body").css("background-color")).toUpperCase();
     var new_color = colors[0];
     for (var i = 0; i < colors.length; i++) {
